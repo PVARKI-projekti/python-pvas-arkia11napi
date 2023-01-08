@@ -5,11 +5,13 @@ from libadvian.logging import init_logging
 
 from .common import cligroup
 from .roles import roles
+from .users import users
 
 LOGGER = logging.getLogger(__name__)
 
 
 cligroup.add_command(roles)
+cligroup.add_command(users)
 
 
 def arkia11napi_cli() -> None:
