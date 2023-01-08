@@ -6,6 +6,7 @@ import json
 
 import click
 from arkia11nmodels.models import Role, User
+from arkia11nmodels.models.role import UserRole
 
 from .common import cligroup, get_and_print_json, list_and_print_json, create_and_print_json, get_by_uuid
 
@@ -86,3 +87,8 @@ def revoke(role_uuid: str, user_uuid: str) -> None:
         await role.remove_from(user)
 
     asyncio.get_event_loop().run_until_complete(action())
+
+@roles.command()
+def lsgrant() -> None:
+    """List role<->user links"""
+    asyncio.get_event_loop().run_until_complete(list_and_print_json(UserRole))
