@@ -1,5 +1,5 @@
 """master cli group and other common stuff"""
-from typing import Any, List, Dict, Union, Type
+from typing import Any, List, Dict, Union, Type, cast
 import logging
 import asyncio
 import uuid
@@ -39,18 +39,25 @@ class DBTypesEncoder(DateTimeEncoder, UUIDEncoder):
     """All the encoders we need"""
 
 
+# FIXME: move these helpers to the arkia11nmodels package
 async def bind_db() -> None:
     """Bind the db"""
     await models.db.set_bind(dbconfig.DSN)
 
 
-async def get_and_print_json(klass: Type[BaseModel], pkin: Union[bytes, str]) -> None:
-    """helper to get and dump as JSON object of type klass"""
+async def get_by_uuid(klass: Type[BaseModel], pkin: Union[bytes, str]) -> BaseModel:
+    """Get a db object by its klass and UUID (base64 or hex str)"""
     try:
         getpk = b64_to_uuid(ensure_utf8(pkin))
     except ValueError:
         getpk = uuid.UUID(ensure_str(pkin))
     obj = await klass.get(getpk)
+    return cast(BaseModel, obj)
+
+
+async def get_and_print_json(klass: Type[BaseModel], pkin: Union[bytes, str]) -> None:
+    """helper to get and dump as JSON object of type klass"""
+    obj = await get_by_uuid(klass, pkin)
     click.echo(json.dumps(obj.to_dict(), cls=DBTypesEncoder))
 
 

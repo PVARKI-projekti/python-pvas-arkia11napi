@@ -5,9 +5,9 @@ import logging
 import json
 
 import click
-from arkia11nmodels.models import Role
+from arkia11nmodels.models import Role, User
 
-from .common import cligroup, get_and_print_json, list_and_print_json, create_and_print_json
+from .common import cligroup, get_and_print_json, list_and_print_json, create_and_print_json, get_by_uuid
 
 # pylint: disable=R0913
 LOGGER = logging.getLogger(__name__)
@@ -56,3 +56,33 @@ def create(role_name: str, acl: str, priority: int) -> None:
         "priority": priority,
     }
     asyncio.get_event_loop().run_until_complete(create_and_print_json(Role, init_kwars))
+
+
+@roles.command()
+@click.argument("role_uuid")
+@click.argument("user_uuid")
+def grant(role_uuid: str, user_uuid: str) -> None:
+    """Grant the user the role"""
+
+    async def action() -> None:
+        """Do the async stuff"""
+        role = await get_by_uuid(Role, role_uuid)
+        user = await get_by_uuid(User, user_uuid)
+        await role.assign_to(user)
+
+    asyncio.get_event_loop().run_until_complete(action())
+
+
+@roles.command()
+@click.argument("role_uuid")
+@click.argument("user_uuid")
+def revoke(role_uuid: str, user_uuid: str) -> None:
+    """Revoke the user from the role"""
+
+    async def action() -> None:
+        """Do the async stuff"""
+        role = await get_by_uuid(Role, role_uuid)
+        user = await get_by_uuid(User, user_uuid)
+        await role.remove_from(user)
+
+    asyncio.get_event_loop().run_until_complete(action())
