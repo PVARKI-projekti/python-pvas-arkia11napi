@@ -2,12 +2,12 @@
 from typing import Any
 import asyncio
 import logging
-import json
 
 import click
 from arkia11nmodels.models import Role, User
-from arkia11nmodels.models.role import UserRole
+from arkia11nmodels.models.role import UserRole, DEFAULT_PRIORITY
 from arkia11nmodels.clickhelpers import get_and_print_json, list_and_print_json, create_and_print_json, get_by_uuid
+from arkia11nmodels.schemas.role import ACL
 
 from .common import cligroup
 
@@ -42,20 +42,19 @@ def get(role_uuid: str) -> None:
     "--acl",
     type=str,
     default="[]",
-    help="Set the ACL (JSON), DEFAULT: []",
+    help="Set the ACL (See arkia11nmodels.schemas.role.ACL), DEFAULT: []",
 )
 @click.option(
     "--priority",
     type=int,
-    default=1000,
-    help="Set the merge priority, DEFAULT: 1000",
+    default=DEFAULT_PRIORITY,
+    help=f"Set the merge priority, DEFAULT: {DEFAULT_PRIORITY}",
 )
 def create(role_name: str, acl: str, priority: int) -> None:
     """Create role"""
-    # FIXME: create pydantic schema for ACL and verify the input
     init_kwars = {
         "displayname": role_name,
-        "acl": json.loads(acl),
+        "acl": ACL.parse_raw(acl).dict(),
         "priority": priority,
     }
     asyncio.get_event_loop().run_until_complete(create_and_print_json(Role, init_kwars))
