@@ -5,10 +5,12 @@ from fastapi import FastAPI
 
 from .views.tokens import TOKEN_ROUTER
 from .views.roles import ROLE_ROUTER
+from .views.users import USER_ROUTER
 
 APP = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
-APP.include_router(TOKEN_ROUTER)
 APP.include_router(ROLE_ROUTER)
+APP.include_router(USER_ROUTER)
+APP.include_router(TOKEN_ROUTER)
 
 
 @APP.get("/api/v1")

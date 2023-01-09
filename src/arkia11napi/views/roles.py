@@ -5,7 +5,7 @@ import logging
 import pendulum
 from fastapi import APIRouter
 from starlette import status
-from arkia11nmodels.models import Role
+from arkia11nmodels.models import Role, User
 from arkia11nmodels.schemas.role import DBRole, RoleCreate
 
 from ..schemas.roles import RoleList
@@ -69,11 +69,11 @@ async def assign_role(pkstr: str, userids: List[str]) -> UserList:
     return UserList([])
 
 
-@ROLE_ROUTER.delete("/api/v1/roles/{pkstr}/users/{userid}", tags=["roles"], response_model=UserList)
-async def remove_role(pkstr: str, userid: str) -> UserList:
-    """Remove user from this role, returns list of users removed"""
+@ROLE_ROUTER.delete("/api/v1/roles/{pkstr}/users/{userid}", tags=["roles"], status_code=status.HTTP_204_NO_CONTENT)
+async def remove_role(pkstr: str, userid: str) -> None:
+    """Remove user from this role"""
     # FIXME: user a pager class, check ACL
     # FIXME: implement
-    _role = await get_or_404(Role, pkstr)
-    _ = userid
-    return UserList([])
+    role = await get_or_404(Role, pkstr)
+    user = await get_or_404(User, userid)
+    await role.remove_from(user)
