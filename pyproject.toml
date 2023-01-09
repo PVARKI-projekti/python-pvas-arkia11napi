@@ -36,6 +36,10 @@ exclude = '''
 [tool.mypy]
 strict=true
 
+[[tool.mypy.overrides]]
+module="arkia11napi.schemas.tokens"  # pydantic_collections has issues
+disallow_subclassing_any=false
+
 [tool.pytest.ini_options]
 junit_family="xunit2"
 addopts="--cov=arkia11napi --cov-fail-under=65 --cov-branch"
@@ -62,7 +66,8 @@ branch = true
 python = "^3.8"
 libadvian = "^1.0"
 click = "^8.0"
-fastapi = ">=0.89,<1.0"  # caret behaviour on 0.x is to lock to 0.x.*
+#fastapi = ">=0.89,<1.0"  # caret behaviour on 0.x is to lock to 0.x.*
+fastapi = "^0.88" # 0.89 has a nasty bug
 uvicorn = {version = "^0.20", extras = ["standard"]}
 gunicorn = "^20.1"
 # FIXME: get from our own nexus or similar
