@@ -37,7 +37,7 @@ exclude = '''
 strict=true
 
 [[tool.mypy.overrides]]
-module="arkia11napi.schemas.tokens"  # pydantic_collections has issues
+module="arkia11napi.schemas.*"  # pydantic_collections has issues
 disallow_subclassing_any=false
 
 [tool.pytest.ini_options]

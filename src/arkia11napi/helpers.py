@@ -19,7 +19,9 @@ async def get_or_404(klass: Type[BaseModel], pkin: Union[bytes, str]) -> BaseMod
     except ValueError:
         getpk = uuid.UUID(ensure_str(pkin))
     obj = await klass.get(getpk)
-    if not obj:
+    if not obj or obj.deleted:
+        if obj:
+            LOGGER.info("{}({}) exists but is marked deleted, so we raise 404")
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "{} not found with pk {}".format(klass.__name__, ensure_str(pkin)),

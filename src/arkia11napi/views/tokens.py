@@ -1,6 +1,7 @@
 """Token relaed endpoints"""
 import logging
 
+import pendulum
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
 from starlette import status
@@ -52,4 +53,4 @@ async def delete_token(pkstr: str) -> None:
     """Delete token"""
     # FIXME: use auth, check ACL
     token = await get_or_404(Token, pkstr)
-    await token.delete()
+    await token.update(deleted=pendulum.now("UTC"))
