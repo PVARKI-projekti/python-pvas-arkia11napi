@@ -1,6 +1,5 @@
 """Main API entrypoint"""
 from typing import Mapping
-from pathlib import Path
 import logging
 
 from fastapi import FastAPI, Request
@@ -12,9 +11,8 @@ from starlette.responses import Response
 from .views.tokens import TOKEN_ROUTER
 from .views.roles import ROLE_ROUTER
 from .views.users import USER_ROUTER
+from .config import TEMPLATES_PATH, STATIC_PATH
 
-STATIC_PATH = Path(__file__).parent / "staticfiles"
-TEMPLATES_PATH = Path(__file__).parent / "templates"
 TEMPLATES = Jinja2Templates(directory=str(TEMPLATES_PATH))
 LOGGER = logging.getLogger(__name__)
 

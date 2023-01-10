@@ -2050,4 +2050,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1,<4.0"  # fastapi-mail depends on 3.8.1 as min
-content-hash = "af2a83605dff91d94a7ead1335025162a75489811eb146f0b0264266b5c1c50d"
+content-hash = "e6e53ab8ffde11d0f0f6e8ecd0c892ea070f6c4d2b9b9c4dc0c53d159b8659eb"

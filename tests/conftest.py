@@ -5,10 +5,11 @@ from pathlib import Path
 
 import pytest
 from libadvian.logging import init_logging
+from fastapi_mail import FastMail
 
 import arkia11napi.security
 from arkia11napi.security import JWTHandler
-
+import arkia11napi.mailer
 
 init_logging(logging.DEBUG)
 LOGGER = logging.getLogger(__name__)
@@ -34,4 +35,23 @@ def jwt_env(monkeysession: Any) -> Generator[JWTHandler, None, None]:
     monkeysession.setenv("JWT_PRIVKEY_PASS", "Disparate-Letdown-Pectin-Natural")  # pragma: allowlist secret
     monkeysession.setattr(arkia11napi.security, "HDL_SINGLETON", JWTHandler())
     singleton = JWTHandler.singleton()
+    yield singleton
+
+
+@pytest.fixture(scope="session", autouse=True)
+def mailer_suppress_send(monkeysession: Any) -> Generator[FastMail, None, None]:
+    """Make sure the mailer is configured and suppressed"""
+    monkeysession.setenv("MAIL_FROM", "testsender@example.com")
+    monkeysession.setenv("SUPPRESS_SEND", "1")
+    monkeysession.setenv("MAIL_USERNAME", "")
+    monkeysession.setenv("MAIL_PASSWORD", "")
+    monkeysession.setenv("MAIL_PORT", "25")
+    monkeysession.setenv("MAIL_SERVER", "localhost")
+    monkeysession.setenv("MAIL_STARTTLS", "0")
+    monkeysession.setenv("MAIL_SSL_TLS", "0")
+    monkeysession.setenv("USE_CREDENTIALS", "0")
+    singleton = arkia11napi.mailer.singleton()
+    # Make sure
+    singleton.config.MAIL_FROM = "testsender@example.com"
+    singleton.config.SUPPRESS_SEND = 1
     yield singleton
