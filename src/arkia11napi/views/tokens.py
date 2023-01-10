@@ -24,6 +24,7 @@ async def request_token(req: TokenRequest) -> TokenRequestResponse:
     return TokenRequestResponse(sent=True)
 
 
+@TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse)
 @TOKEN_ROUTER.post("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse)
 async def use_token(token: str) -> RedirectResponse:
     """Use a token"""
