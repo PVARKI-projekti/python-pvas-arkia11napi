@@ -1,6 +1,11 @@
 """Test security helpers"""
+import logging
 
-from arkia11napi.security import JWTHandler
+import pendulum
+
+from arkia11napi.security import JWTHandler, JWT_LIFETIME
+
+LOGGER = logging.getLogger(__name__)
 
 
 def test_jwt_singleton() -> None:
@@ -8,3 +13,19 @@ def test_jwt_singleton() -> None:
     hdl = JWTHandler.singleton()
     assert hdl._privkey  # pylint: disable=W0212
     assert hdl._pubkey  # pylint: disable=W0212
+
+
+def test_jwt_roundtrip() -> None:
+    """Encode some claims and decode them"""
+    hdl = JWTHandler.singleton()
+    claims = {"cn": "kimmo", "something": 123.4}
+    token = hdl.issue(claims)
+    decoded = hdl.decode(token)
+    LOGGER.debug("decoded={}".format(repr(decoded)))
+    assert decoded["cn"] == claims["cn"]
+    assert decoded["something"] == claims["something"]
+    issued = pendulum.from_timestamp(decoded["iat"], tz="UTC")
+    expires = pendulum.from_timestamp(decoded["exp"], tz="UTC")
+    LOGGER.debug("issued={}, expires={}".format(issued, expires))
+    assert (pendulum.now("UTC") - issued).in_seconds() < 1.0
+    assert (expires - pendulum.now("UTC")).in_seconds() > (JWT_LIFETIME - 2.0)
