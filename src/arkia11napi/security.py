@@ -46,9 +46,11 @@ class JWTHandler:
     )
     config: JWTHandlerConfig = field(default_factory=JWTHandlerConfig)
 
+    # Non-init public props
+    pubkey: PUBLIC_KEY_TYPES = field(init=False)
+
     # Private props
     _privkey: PRIVATE_KEY_TYPES = field(init=False, repr=False)
-    _pubkey: PUBLIC_KEY_TYPES = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         """Read the keys"""
@@ -60,7 +62,7 @@ class JWTHandler:
                 fpntr.read(), password=passphrase, backend=default_backend()
             )
         with self.pubkeypath.open("rb") as fpntr:
-            self._pubkey = serialization.load_pem_public_key(fpntr.read(), backend=default_backend())
+            self.pubkey = serialization.load_pem_public_key(fpntr.read(), backend=default_backend())
 
     def issue(self, claims: Dict[str, Any]) -> str:
         """Issue JWT with claims, sets some basic defaults"""
@@ -76,13 +78,13 @@ class JWTHandler:
 
     def decode(self, token: str) -> Dict[str, Any]:
         """Decode the token"""
-        return pyJWT.decode(jwt=token, key=self._pubkey, algorithms=[self.config.algorithm])  # type: ignore
+        return pyJWT.decode(jwt=token, key=self.pubkey, algorithms=[self.config.algorithm])  # type: ignore
 
     @classmethod
     def singleton(cls, **kwargs: Any) -> JWTHandler:
         """Get a singleton"""
-        global HDL_SINGLETON  # pylint: disable=W0602
+        global HDL_SINGLETON  # pylint: disable=W0603
         if HDL_SINGLETON is None:
-            JWTHandler(**kwargs)
+            HDL_SINGLETON = JWTHandler(**kwargs)
         assert HDL_SINGLETON is not None
         return HDL_SINGLETON

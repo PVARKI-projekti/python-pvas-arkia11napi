@@ -3,17 +3,23 @@ import logging
 
 import pendulum
 from fastapi import APIRouter
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
 from starlette import status
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token
 
 from ..schemas.tokens import TokenList, TokenRequestResponse
 from ..helpers import get_or_404
-
+from ..security import JWTHandler
 
 LOGGER = logging.getLogger(__name__)
 TOKEN_ROUTER = APIRouter()
+
+
+@TOKEN_ROUTER.get("/api/v1/tokens/pubkey", tags=["tokens"], response_class=FileResponse)
+async def public_key() -> FileResponse:
+    """Return the public key for JWT verification (for automated setups in TLS environments)"""
+    return FileResponse(path=JWTHandler.singleton().pubkeypath, media_type="text/pain", filename="jwt.pub")
 
 
 @TOKEN_ROUTER.post("/api/v1/tokens", tags=["tokens"], response_model=TokenRequestResponse)
