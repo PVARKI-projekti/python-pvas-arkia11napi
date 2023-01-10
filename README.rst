@@ -13,6 +13,14 @@ to default into signing JWTs with the insecure test keys.
 
 See dotenv.example on what you need to put into your .env -file.
 
+Mailhog
+^^^^^^^
+
+Example dotenv is configured for MailHog to be used with development::
+
+    docker run -d -p 8025:8025 -p 1025:1025 mailhog/mailhog
+
+go to http://localhost:8025/ to view the emails.
 
 Docker
 ------
