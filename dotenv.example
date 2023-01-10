@@ -13,3 +13,7 @@ MAIL_PORT=25 # MUST be explicitly set
 MAIL_SERVER="localhost"
 MAIL_STARTTLS="0" # Try to upgrade to TLS
 MAIL_SSL_TLS="0" # Force TLS
+
+# Templating and stylesheets, if you want to override for some reason
+# STATIC_PATH="/path/to/directory"
+# TEMPLATES_PATH="/path/to/directory"
