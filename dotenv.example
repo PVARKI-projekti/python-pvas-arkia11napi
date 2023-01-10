@@ -1,0 +1,3 @@
+JWT_PRIVKEY_PATH="tests/data/jwtRS256.key"
+JWT_PUBKEY_PATH="tests/data/jwtRS256.pub"
+JWT_PRIVKEY_PASS="Disparate-Letdown-Pectin-Natural"

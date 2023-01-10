@@ -5,6 +5,15 @@ arkia11napi
 FastAPI for PVARKI user management, authentication and authorization
 
 
+Configuration
+-------------
+
+You need to configure some things even when running the development server locally since we do not want
+to default into signing JWTs with the insecure test keys.
+
+See dotenv.example on what you need to put into your .env -file.
+
+
 Docker
 ------
 
@@ -72,8 +81,6 @@ architecture tag to arm64 if building on ARM::
 
 Development
 -----------
-
-TODO: Remove the repo init from this document after you have done it.
 
 TLDR:
 
