@@ -43,7 +43,8 @@ async def list_roles() -> RoleList:
 async def get_role(pkstr: str) -> DBRole:
     """Get a single role"""
     # FIXME: check ACL
-    return await get_or_404(Role, pkstr)
+    role = await get_or_404(Role, pkstr)
+    return DBRole.parse_obj(role.to_dict())
 
 
 @ROLE_ROUTER.delete("/api/v1/roles/{pkstr}", tags=["roles"], status_code=status.HTTP_204_NO_CONTENT)
