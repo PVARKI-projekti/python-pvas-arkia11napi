@@ -57,5 +57,5 @@ repos:
     hooks:
     -   id: detect-secrets
         language: system
-        exclude: "poetry.lock"
+        exclude: "poetry.lock|data/jwtRS256.key|data/jwtRS256.pub"
         # args: ['--baseline', '.secrets.baseline']

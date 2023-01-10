@@ -1,6 +1,7 @@
 """Main API entrypoint"""
 from typing import Mapping
 from pathlib import Path
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -14,10 +15,11 @@ from .views.users import USER_ROUTER
 
 STATIC_PATH = Path(__file__).parent / "staticfiles"
 TEMPLATES_PATH = Path(__file__).parent / "templates"
+TEMPLATES = Jinja2Templates(directory=str(TEMPLATES_PATH))
+LOGGER = logging.getLogger(__name__)
 
 APP = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 APP.mount("/static", StaticFiles(directory=str(STATIC_PATH)), name="static")
-TEMPLATES = Jinja2Templates(directory=str(TEMPLATES_PATH))
 APP.include_router(ROLE_ROUTER)
 APP.include_router(USER_ROUTER)
 APP.include_router(TOKEN_ROUTER)
