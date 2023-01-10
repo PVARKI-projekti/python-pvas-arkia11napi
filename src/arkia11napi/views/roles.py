@@ -31,8 +31,12 @@ async def create_role(role: RoleCreate) -> DBRole:
 async def list_roles() -> RoleList:
     """List roles"""
     # FIXME: user a pager class, check ACL
-    # FIXME: implement
-    return RoleList([])
+    roles = await Role.query.where(
+        Role.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
+    ).gino.all()
+    if not roles:
+        return RoleList([])
+    return RoleList([DBRole.parse_obj(role.to_dict()) for role in roles])
 
 
 @ROLE_ROUTER.get("/api/v1/roles/{pkstr}", tags=["roles"], response_model=DBRole)
