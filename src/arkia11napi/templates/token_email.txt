@@ -1,0 +1,5 @@
+Hiya
+
+Use the following link {{ login_url }}
+
+FIXME: Make better template
