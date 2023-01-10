@@ -76,6 +76,9 @@ pyjwt = {version = "^2.6", extras = ["crypto"]}
 # FIXME: when https://github.com/sabuhish/fastapi-mail/pull/174 merged, packaged and published
 # fastapi-mail = "^1.2"
 fastapi-mail = { git="https://github.com/rambo/fastapi-mail.git", branch="rambo" }
+# FIXME: when https://github.com/python-gino/gino-starlette/pull/38 merged, packaged and published
+# gino-starlette = ">=0.1.6,<1.0"
+gino-starlette = { git="https://github.com/rambo/gino-starlette.git", branch="issue-37" }
 # FIXME: get from our own nexus or similar
 arkia11nmodels = { git="https://github.com/PVARKI-projekti/python-shop-arkia11nmodels.git", branch="rambo" }
 

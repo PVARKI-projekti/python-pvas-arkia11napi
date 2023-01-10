@@ -681,6 +681,26 @@ starlette = ["gino-starlette (>=0.1.1,<0.2.0)"]
 tornado = ["gino-tornado (>=0.1.0,<0.2.0)"]
 
 [[package]]
+name = "gino-starlette"
+version = "0.1.6"
+description = "An extension for GINO to integrate with Starlette"
+category = "main"
+optional = false
+python-versions = ">=3.6.2,<4.0"  # fresh black requires at least 3.6.2 so we can't use ^3.6
+files = []
+develop = false
+
+[package.dependencies]
+gino = "^1.0"
+starlette = ">=0.19,<1.0"
+
+[package.source]
+type = "git"
+url = "https://github.com/rambo/gino-starlette.git"
+reference = "issue-37"
+resolved_reference = "994a0fe0b363d5a857c84e8a957669109073be9a"
+
+[[package]]
 name = "gitdb"
 version = "4.0.10"
 description = "Git Object Database"
@@ -2050,4 +2070,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1,<4.0"  # fastapi-mail depends on 3.8.1 as min
-content-hash = "e6e53ab8ffde11d0f0f6e8ecd0c892ea070f6c4d2b9b9c4dc0c53d159b8659eb"
+content-hash = "16afefbf2e38209cf2d7b2c761ed98a1e7c1d4d56da28056d3b992ece07bc08b"
