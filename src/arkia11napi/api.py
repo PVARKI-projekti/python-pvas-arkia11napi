@@ -12,6 +12,7 @@ from .views.tokens import TOKEN_ROUTER
 from .views.roles import ROLE_ROUTER
 from .views.users import USER_ROUTER
 from .config import TEMPLATES_PATH, STATIC_PATH
+from .middleware import db
 
 TEMPLATES = Jinja2Templates(directory=str(TEMPLATES_PATH))
 LOGGER = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ APP.mount("/static", StaticFiles(directory=str(STATIC_PATH)), name="static")
 APP.include_router(ROLE_ROUTER)
 APP.include_router(USER_ROUTER)
 APP.include_router(TOKEN_ROUTER)
+db.init_app(APP)
 
 
 @APP.get("/gdpr", tags=["privacy"], response_class=HTMLResponse)
