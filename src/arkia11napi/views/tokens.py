@@ -76,4 +76,4 @@ async def delete_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_erro
     # FIXME: use auth, check ACL
     _ = jwt
     token = await get_or_404(Token, pkstr)
-    await token.update(deleted=pendulum.now("UTC"))
+    await token.update(deleted=pendulum.now("UTC")).apply()

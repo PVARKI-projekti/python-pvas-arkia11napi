@@ -60,7 +60,7 @@ async def delete_role(pkstr: str) -> None:
     """Delete role"""
     # FIXME: check ACL
     role = await get_or_404(Role, pkstr)
-    await role.update(deleted=pendulum.now("UTC"))
+    await role.update(deleted=pendulum.now("UTC")).apply()
 
 
 @ROLE_ROUTER.get("/api/v1/roles/{pkstr}/users", tags=["roles"], response_model=UserList)
