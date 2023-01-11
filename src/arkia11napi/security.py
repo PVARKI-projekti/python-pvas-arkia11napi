@@ -1,6 +1,6 @@
 """Security related stuff"""
-from __future__ import annotations
-from typing import Optional, Any, Dict
+# importing annotations from future bloews up fastapi dependency injection
+from typing import Optional, Any, Dict, Mapping
 import logging
 from dataclasses import dataclass, field
 import functools
@@ -14,9 +14,10 @@ from cryptography.hazmat.primitives.asymmetric.types import PRIVATE_KEY_TYPES, P
 from cryptography.hazmat.backends import default_backend
 from starlette.config import Config
 from starlette.datastructures import Secret
+from fastapi import Request, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 LOGGER = logging.getLogger(__name__)
-HDL_SINGLETON: Optional[JWTHandler] = None
 JWT_LIFETIME = 60 * 60 * 2  # 2 hours in seconds
 
 cfg = Config(".env")
@@ -81,10 +82,35 @@ class JWTHandler:
         return pyJWT.decode(jwt=token, key=self.pubkey, algorithms=[self.config.algorithm])  # type: ignore
 
     @classmethod
-    def singleton(cls, **kwargs: Any) -> JWTHandler:
+    def singleton(cls, **kwargs: Any) -> "JWTHandler":
         """Get a singleton"""
         global HDL_SINGLETON  # pylint: disable=W0603
         if HDL_SINGLETON is None:
             HDL_SINGLETON = JWTHandler(**kwargs)
         assert HDL_SINGLETON is not None
         return HDL_SINGLETON
+
+
+HDL_SINGLETON: Optional[JWTHandler] = None
+
+JWTPayload = Mapping[str, Any]
+
+
+class JWTBearer(HTTPBearer):  # pylint: disable=R0903
+    """Check JWT bearer tokens"""
+
+    async def __call__(self, request: Request) -> Optional[JWTPayload]:  # type: ignore[override]
+        credentials: Optional[HTTPAuthorizationCredentials] = await super().__call__(request)
+        if not credentials:
+            # autp-error will have raised already if no auth header
+            return None
+        if credentials.scheme != "Bearer":
+            raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
+        payload: Optional[Mapping[str, Any]] = None
+        try:
+            payload = JWTHandler.singleton().decode(credentials.credentials)
+        except Exception as exc:  # pylint: disable=W0703
+            LOGGER.exception("Got problem {} decoding {}".format(exc, credentials))
+        if not payload and self.auto_error:
+            raise HTTPException(status_code=403, detail="Invalid or expired token.")
+        return payload

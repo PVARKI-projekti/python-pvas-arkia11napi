@@ -3,7 +3,7 @@ from typing import List
 import logging
 
 import pendulum
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from starlette import status
 from arkia11nmodels.models import User, Role
 from arkia11nmodels.schemas.user import DBUser, UserCreate
@@ -12,11 +12,11 @@ from arkia11nmodels.schemas.role import DBRole
 from ..schemas.roles import RoleList
 from ..schemas.users import UserPager
 from ..helpers import get_or_404
+from ..security import JWTBearer
 
 
 LOGGER = logging.getLogger(__name__)
-# FIXME insert auth dependency, all our points need auth
-USER_ROUTER = APIRouter()
+USER_ROUTER = APIRouter(dependencies=[Depends(JWTBearer(auto_error=True))])
 
 
 @USER_ROUTER.post("/api/v1/users", tags=["users"], response_model=DBUser)

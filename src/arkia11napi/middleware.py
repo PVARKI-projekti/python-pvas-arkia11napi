@@ -1,5 +1,5 @@
 """Middleware stuff"""
-from __future__ import annotations
+# importing annotations from future blows up fastapi dependency injection
 from dataclasses import dataclass, field
 import logging
 import asyncio
