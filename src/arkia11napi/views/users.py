@@ -65,9 +65,10 @@ async def delete_user(pkstr: str) -> None:
 async def get_roles(pkstr: str) -> RoleList:
     """Get list of roles assigned to user"""
     # FIXME: user a pager class, check ACL
-    # FIXME: implement
-    _user = await get_or_404(User, pkstr)
-    return RoleList([])
+    user = await get_or_404(User, pkstr)
+    roles = await Role.resolve_user_roles(user)
+    pdroles = [DBRole.parse_obj(role.to_dict()) for role in roles]
+    return RoleList(pdroles)
 
 
 @USER_ROUTER.post("/api/v1/users/{pkstr}/roles", tags=["users"], response_model=RoleList)

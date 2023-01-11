@@ -1,15 +1,19 @@
 """pytest automagics"""
 from typing import Any, Generator
+import asyncio
 import logging
 from pathlib import Path
 
 import pytest
 from libadvian.logging import init_logging
+from fastapi.testclient import TestClient
 from fastapi_mail import FastMail
+from arkia11nmodels.testhelpers import monkeysession, db_is_responsive, dockerdb  # pylint: disable=W0611
 
 import arkia11napi.security
 from arkia11napi.security import JWTHandler
 import arkia11napi.mailer
+from arkia11napi.api import APP
 
 init_logging(logging.DEBUG)
 LOGGER = logging.getLogger(__name__)
@@ -19,12 +23,11 @@ DATA_PATH = Path(__file__).parent / Path("data")
 # pylint: disable=W0621
 
 
-# FIXME: should be moved to libadvian.testhelpers
 @pytest.fixture(scope="session")
-def monkeysession() -> Any:  # while we wait for the type come out of _pytest
-    """session scoped monkeypatcher"""
-    with pytest.MonkeyPatch.context() as mpatch:
-        yield mpatch
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """return event loop, made session scoped fixture to allow db connections to persists between tests"""
+    loop = asyncio.get_event_loop()
+    yield loop
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -55,3 +58,22 @@ def mailer_suppress_send(monkeysession: Any) -> Generator[FastMail, None, None]:
     singleton.config.MAIL_FROM = "testsender@example.com"
     singleton.config.SUPPRESS_SEND = 1
     yield singleton
+
+
+@pytest.fixture
+def client(jwt_env: JWTHandler, dockerdb: str) -> Generator[TestClient, None, None]:
+    """Instantiated test client with superadmin privileges"""
+    _ = dockerdb
+    instance = TestClient(APP)
+    # FIXME: issue superadmin privileges when we get there (and create a real user + role for those)
+    token = jwt_env.issue({"dummy": True})
+    instance.headers.update({"Authorization": f"Bearer {token}"})
+    yield instance
+
+
+@pytest.fixture
+def unauth_client(dockerdb: str) -> Generator[TestClient, None, None]:
+    """Instantiated test client with no privileges"""
+    _ = dockerdb
+    instance = TestClient(APP)
+    yield instance

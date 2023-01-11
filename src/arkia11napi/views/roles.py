@@ -11,6 +11,7 @@ from arkia11nmodels.schemas.user import DBUser, UserList
 
 
 from ..schemas.roles import RolePager
+from ..schemas.users import UserPager
 from ..helpers import get_or_404
 from ..security import JWTBearer
 
@@ -62,13 +63,15 @@ async def delete_role(pkstr: str) -> None:
     await role.update(deleted=pendulum.now("UTC")).apply()
 
 
-@ROLE_ROUTER.get("/api/v1/roles/{pkstr}/users", tags=["roles"], response_model=UserList)
-async def get_role_assignees(pkstr: str) -> UserList:
+@ROLE_ROUTER.get("/api/v1/roles/{pkstr}/users", tags=["roles"], response_model=UserPager)
+async def get_role_assignees(pkstr: str) -> UserPager:
     """Get list of users assigned to role"""
     # FIXME: check ACL
-    # FIXME: implement
-    _role = await get_or_404(Role, pkstr)
-    return UserList([])
+    # FIXME: actually paginate with DB cursor, the list method can get very expensive
+    role = await get_or_404(Role, pkstr)
+    users = await role.list_role_users()
+    pdusers = [DBUser.parse_obj(role.to_dict()) for user in users]
+    return UserPager(items=pdusers, count=len(users))
 
 
 @ROLE_ROUTER.post("/api/v1/roles/{pkstr}/users", tags=["roles"], response_model=UserList)
