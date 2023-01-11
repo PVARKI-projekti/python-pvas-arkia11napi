@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from starlette import status
 from arkia11nmodels.models import User, Role
 from arkia11nmodels.schemas.user import DBUser, UserCreate
+from arkia11nmodels.schemas.role import DBRole
 
 from ..schemas.roles import RoleList
 from ..schemas.users import UserPager
@@ -44,6 +45,7 @@ async def list_users() -> UserPager:
     )
 
 
+# FIXME: Add patch method and pydanctic schema for uppdating
 @USER_ROUTER.get("/api/v1/users/{pkstr}", tags=["users"], response_model=DBUser)
 async def get_user(pkstr: str) -> DBUser:
     """Get a single user"""
@@ -71,12 +73,17 @@ async def get_roles(pkstr: str) -> RoleList:
 
 @USER_ROUTER.post("/api/v1/users/{pkstr}/roles", tags=["users"], response_model=RoleList)
 async def assign_roles(pkstr: str, roleids: List[str]) -> RoleList:
-    """Assign roles this user, returns list of roles added"""
-    # FIXME: user a pager class, check ACL
-    # FIXME: implement
-    _user = await get_or_404(User, pkstr)
-    _ = roleids
-    return RoleList([])
+    """Assign roles this user, returns list of roles added (if role is not in list user already had that role)"""
+    # FIXME: check ACL
+    user = await get_or_404(User, pkstr)
+    # This will sadly mess things up for asyncpg with the way the gino middleware is set up
+    # roles = await asyncio.gather(*[get_or_404(Role, roleid) for roleid in roleids])
+    lst = []
+    for roleid in roleids:
+        role = await get_or_404(Role, roleid)
+        if await role.assign_to(user):
+            lst.append(DBRole.parse_obj(role.to_dict()))
+    return RoleList(lst)
 
 
 @USER_ROUTER.delete("/api/v1/users/{pkstr}/roles/{roleid}", tags=["users"], status_code=status.HTTP_204_NO_CONTENT)

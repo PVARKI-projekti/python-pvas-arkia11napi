@@ -56,6 +56,7 @@ async def list_tokens() -> TokenPager:
     )
 
 
+# FIXME: Add patch method and pydanctic schema for uppdating
 @TOKEN_ROUTER.get("/api/v1/tokens/{pkstr}", tags=["tokens"], response_model=DBToken)
 async def get_token(pkstr: str) -> DBToken:
     """Get a single token"""
