@@ -7,11 +7,10 @@ from fastapi import APIRouter, Depends
 from starlette import status
 from arkia11nmodels.models import Role, User
 from arkia11nmodels.schemas.role import DBRole, RoleCreate
-from arkia11nmodels.schemas.user import DBUser
+from arkia11nmodels.schemas.user import DBUser, UserList
 
 
 from ..schemas.roles import RolePager
-from ..schemas.users import UserList
 from ..helpers import get_or_404
 from ..security import JWTBearer
 

@@ -65,7 +65,7 @@ migrations = ["alembic (>=1.9,<2.0)", "psycopg2 (>=2.9,<3.0)"]
 type = "git"
 url = "https://github.com/PVARKI-projekti/python-shop-arkia11nmodels.git"
 reference = "rambo"
-resolved_reference = "158df3d958a2fbdeffe2a593883c12a318a4882f"
+resolved_reference = "c561116d8127fd9b9b9196d8eb318e6ed5f10c45"
 
 [[package]]
 name = "astroid"
@@ -681,26 +681,6 @@ starlette = ["gino-starlette (>=0.1.1,<0.2.0)"]
 tornado = ["gino-tornado (>=0.1.0,<0.2.0)"]
 
 [[package]]
-name = "gino-starlette"
-version = "0.1.6"
-description = "An extension for GINO to integrate with Starlette"
-category = "main"
-optional = false
-python-versions = ">=3.6.2,<4.0"  # fresh black requires at least 3.6.2 so we can't use ^3.6
-files = []
-develop = false
-
-[package.dependencies]
-gino = "^1.0"
-starlette = ">=0.19,<1.0"
-
-[package.source]
-type = "git"
-url = "https://github.com/rambo/gino-starlette.git"
-reference = "issue-37"
-resolved_reference = "994a0fe0b363d5a857c84e8a957669109073be9a"
-
-[[package]]
 name = "gitdb"
 version = "4.0.10"
 description = "Git Object Database"
@@ -1157,14 +1137,14 @@ files = [
 
 [[package]]
 name = "pbr"
-version = "5.11.0"
+version = "5.11.1"
 description = "Python Build Reasonableness"
 category = "dev"
 optional = false
 python-versions = ">=2.6"
 files = [
-    {file = "pbr-5.11.0-py2.py3-none-any.whl", hash = "sha256:db2317ff07c84c4c63648c9064a79fe9d9f5c7ce85a9099d4b6258b3db83225a"},
-    {file = "pbr-5.11.0.tar.gz", hash = "sha256:b97bc6695b2aff02144133c2e7399d5885223d42b7912ffaec2ca3898e673bfe"},
+    {file = "pbr-5.11.1-py2.py3-none-any.whl", hash = "sha256:567f09558bae2b3ab53cb3c1e2e33e726ff3338e7bae3db5dc954b3a44eef12b"},
+    {file = "pbr-5.11.1.tar.gz", hash = "sha256:aefc51675b0b533d56bb5fd1c8c6c0522fe31896679882e1c4c63d5e4a0fccb3"},
 ]
 
 [[package]]
@@ -1776,14 +1756,14 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "1.26.13"
+version = "1.26.14"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 files = [
-    {file = "urllib3-1.26.13-py2.py3-none-any.whl", hash = "sha256:47cc05d99aaa09c9e72ed5809b60e7ba354e64b59c9c173ac3018642d8bb41fc"},
-    {file = "urllib3-1.26.13.tar.gz", hash = "sha256:c083dd0dce68dbfbe1129d5271cb90f9447dea7d52097c6e0126120c521ddea8"},
+    {file = "urllib3-1.26.14-py2.py3-none-any.whl", hash = "sha256:75edcdc2f7d85b137124a6c3c9fc3933cdeaa12ecb9a6a959f22797a0feca7e1"},
+    {file = "urllib3-1.26.14.tar.gz", hash = "sha256:076907bf8fd355cde77728471316625a4d2f7e713c125f51953bb5b3eecf4f72"},
 ]
 
 [package.extras]
@@ -2070,4 +2050,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.1,<4.0"  # fastapi-mail depends on 3.8.1 as min
-content-hash = "16afefbf2e38209cf2d7b2c761ed98a1e7c1d4d56da28056d3b992ece07bc08b"
+content-hash = "e6e53ab8ffde11d0f0f6e8ecd0c892ea070f6c4d2b9b9c4dc0c53d159b8659eb"

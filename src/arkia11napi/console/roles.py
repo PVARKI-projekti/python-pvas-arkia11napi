@@ -5,7 +5,8 @@ import logging
 
 import click
 from arkia11nmodels.models import Role, User
-from arkia11nmodels.models.role import UserRole, DEFAULT_PRIORITY
+from arkia11nmodels.models.role import UserRole
+from arkia11nmodels.schemas.role import DEFAULT_PRIORITY
 from arkia11nmodels.clickhelpers import get_and_print_json, list_and_print_json, create_and_print_json, get_by_uuid
 from arkia11nmodels.schemas.role import ACL
 
