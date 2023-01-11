@@ -8,7 +8,7 @@ from starlette import status
 from arkia11nmodels.models import Role, User
 from arkia11nmodels.schemas.role import DBRole, RoleCreate
 
-from ..schemas.roles import RoleList
+from ..schemas.roles import RolePager
 from ..schemas.users import UserList
 from ..helpers import get_or_404
 
@@ -27,16 +27,20 @@ async def create_role(role: RoleCreate) -> DBRole:
     raise NotImplementedError()
 
 
-@ROLE_ROUTER.get("/api/v1/roles", tags=["roles"], response_model=RoleList)
-async def list_roles() -> RoleList:
+@ROLE_ROUTER.get("/api/v1/roles", tags=["roles"], response_model=RolePager)
+async def list_roles() -> RolePager:
     """List roles"""
-    # FIXME: user a pager class, check ACL
+    # FIXME: check ACL
     roles = await Role.query.where(
         Role.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
     ).gino.all()
     if not roles:
-        return RoleList([])
-    return RoleList([DBRole.parse_obj(role.to_dict()) for role in roles])
+        return RolePager(items=[], count=0)
+    pdroles = [DBRole.parse_obj(role.to_dict()) for role in roles]
+    return RolePager(
+        count=len(pdroles),
+        items=pdroles,
+    )
 
 
 @ROLE_ROUTER.get("/api/v1/roles/{pkstr}", tags=["roles"], response_model=DBRole)
@@ -78,7 +82,6 @@ async def assign_role(pkstr: str, userids: List[str]) -> UserList:
 async def remove_role(pkstr: str, userid: str) -> None:
     """Remove user from this role"""
     # FIXME: user a pager class, check ACL
-    # FIXME: implement
     role = await get_or_404(Role, pkstr)
     user = await get_or_404(User, userid)
     await role.remove_from(user)

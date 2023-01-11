@@ -8,7 +8,7 @@ from starlette import status
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token
 
-from ..schemas.tokens import TokenList, TokenRequestResponse
+from ..schemas.tokens import TokenRequestResponse, TokenPager
 from ..helpers import get_or_404
 from ..security import JWTHandler
 
@@ -40,19 +40,28 @@ async def use_token(token: str) -> RedirectResponse:
     return RedirectResponse("/api/v1", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@TOKEN_ROUTER.get("/api/v1/tokens", tags=["tokens"], response_model=TokenList)
-async def list_tokens() -> TokenList:
+@TOKEN_ROUTER.get("/api/v1/tokens", tags=["tokens"], response_model=TokenPager)
+async def list_tokens() -> TokenPager:
     """List tokens"""
-    # FIXME: user a pager class, use auth, check ACL
-    # FIXME: implement
-    return TokenList([])
+    # FIXME: use auth, check ACL
+    tokens = await Token.query.where(
+        Token.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
+    ).gino.all()
+    if not tokens:
+        return TokenPager(items=[], count=0)
+    pdtokens = [DBToken.parse_obj(token.to_dict()) for token in tokens]
+    return TokenPager(
+        count=len(pdtokens),
+        items=pdtokens,
+    )
 
 
 @TOKEN_ROUTER.get("/api/v1/tokens/{pkstr}", tags=["tokens"], response_model=DBToken)
 async def get_token(pkstr: str) -> DBToken:
     """Get a single token"""
     # FIXME: use auth, check ACL
-    return await get_or_404(Token, pkstr)
+    token = await get_or_404(Token, pkstr)
+    return DBToken.parse_obj(token.to_dict())
 
 
 @TOKEN_ROUTER.delete("/api/v1/tokens/{pkstr}", tags=["tokens"], status_code=status.HTTP_204_NO_CONTENT)

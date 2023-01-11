@@ -1,5 +1,5 @@
 """Token endpoint schemas"""
-from typing import Optional
+from typing import Optional, Sequence
 import uuid
 
 from arkia11nmodels.schemas.token import DBToken
@@ -8,7 +8,17 @@ from pydantic import Field
 from pydantic.main import BaseModel  # pylint: disable=E0611 # false positive
 from libadvian.binpackers import ensure_str, uuid_to_b64
 
+from .pager import PagerBase
+
 # pylint: disable=R0903
+
+
+class TokenPager(PagerBase):
+    """List tokens (paginated)"""
+
+    items: Sequence[DBToken] = Field(default_factory=list, description="The tokens on this page")
+
+
 class TokenList(BaseCollectionModel[DBToken]):
     """List of tokens"""
 

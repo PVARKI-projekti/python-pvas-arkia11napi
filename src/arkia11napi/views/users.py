@@ -9,7 +9,7 @@ from arkia11nmodels.models import User, Role
 from arkia11nmodels.schemas.user import DBUser, UserCreate
 
 from ..schemas.roles import RoleList
-from ..schemas.users import UserList
+from ..schemas.users import UserPager
 from ..helpers import get_or_404
 
 
@@ -19,27 +19,37 @@ USER_ROUTER = APIRouter()
 
 
 @USER_ROUTER.post("/api/v1/users", tags=["users"], response_model=DBUser)
-async def create_user(role: UserCreate) -> DBUser:
+async def create_user(pduser: UserCreate) -> DBUser:
     """Create user"""
-    # FIXME: user a pager class, check ACL
-    # FIXME: implement
-    _ = role
-    raise NotImplementedError()
+    # FIXME: check ACL
+    user = User(**pduser.dict())
+    await user.create()
+    refresh = await User.get(user.pk)
+    return DBUser.parse_obj(refresh.to_dict())
 
 
-@USER_ROUTER.get("/api/v1/users", tags=["users"], response_model=UserList)
-async def list_users() -> UserList:
+@USER_ROUTER.get("/api/v1/users", tags=["users"], response_model=UserPager)
+async def list_users() -> UserPager:
     """List users"""
-    # FIXME: user a pager class, check ACL
-    # FIXME: implement
-    return UserList([])
+    # FIXME: check ACL
+    users = await User.query.where(
+        User.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
+    ).gino.all()
+    if not users:
+        return UserPager(items=[], count=0)
+    pdusers = [DBUser.parse_obj(user.to_dict()) for user in users]
+    return UserPager(
+        count=len(pdusers),
+        items=pdusers,
+    )
 
 
 @USER_ROUTER.get("/api/v1/users/{pkstr}", tags=["users"], response_model=DBUser)
 async def get_user(pkstr: str) -> DBUser:
     """Get a single user"""
     # FIXME: check ACL
-    return await get_or_404(User, pkstr)
+    user = await get_or_404(User, pkstr)
+    return DBUser.parse_obj(user.to_dict())
 
 
 @USER_ROUTER.delete("/api/v1/users/{pkstr}", tags=["users"], status_code=status.HTTP_204_NO_CONTENT)
@@ -72,8 +82,7 @@ async def assign_roles(pkstr: str, roleids: List[str]) -> RoleList:
 @USER_ROUTER.delete("/api/v1/users/{pkstr}/roles/{roleid}", tags=["users"], status_code=status.HTTP_204_NO_CONTENT)
 async def remove_role(pkstr: str, roleid: str) -> None:
     """Remove user from this role, returns list of users removed"""
-    # FIXME: user a pager class, check ACL
-    # FIXME: implement
+    # FIXME: check ACL
     user = await get_or_404(User, pkstr)
     role = await get_or_404(Role, roleid)
     await role.remove_from(user)
