@@ -1,19 +1,24 @@
 """pytest automagics"""
-from typing import Any, Generator
+from typing import Any, Generator, AsyncGenerator
 import asyncio
 import logging
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
 from libadvian.logging import init_logging
-from fastapi.testclient import TestClient
+from async_asgi_testclient import TestClient
 from fastapi_mail import FastMail
-from arkia11nmodels.testhelpers import monkeysession, db_is_responsive, dockerdb  # pylint: disable=W0611
+import sqlalchemy
+from arkia11nmodels.testhelpers import monkeysession  # pylint: disable=W0611 ; # false positive
+
+from arkia11nmodels import models
+from asyncpg.exceptions import DuplicateSchemaError
 
 import arkia11napi.security
 from arkia11napi.security import JWTHandler
 import arkia11napi.mailer
-from arkia11napi.api import APP
+from arkia11napi.api import APP, WRAPPER
 
 init_logging(logging.DEBUG)
 LOGGER = logging.getLogger(__name__)
@@ -60,21 +65,74 @@ def mailer_suppress_send(monkeysession: Any) -> Generator[FastMail, None, None]:
     yield singleton
 
 
-@pytest.fixture
-def client(jwt_env: JWTHandler, dockerdb: str) -> Generator[TestClient, None, None]:
+@pytest_asyncio.fixture(scope="session")
+async def client(jwt_env: JWTHandler, dockerdb: str) -> AsyncGenerator[TestClient, None]:
     """Instantiated test client with superadmin privileges"""
     _ = dockerdb
-    instance = TestClient(APP)
-    # FIXME: issue superadmin privileges when we get there (and create a real user + role for those)
-    token = jwt_env.issue({"dummy": True})
-    LOGGER.debug("token={}".format(token))
-    instance.headers.update({"Authorization": f"Bearer {token}"})
-    yield instance
+    async with TestClient(APP) as instance:
+        # FIXME: issue superadmin privileges when we get there (and create a real user + role for those)
+        token = jwt_env.issue({"dummy": True})
+        LOGGER.debug("token={}".format(token))
+        instance.headers.update({"Authorization": f"Bearer {token}"})
+
+        await bind_and_create_all()
+        LOGGER.debug("Yielding instance")
+        yield instance
+        LOGGER.debug("back")
 
 
-@pytest.fixture
-def unauth_client(dockerdb: str) -> Generator[TestClient, None, None]:
+@pytest_asyncio.fixture(scope="session")
+async def unauth_client(client: TestClient) -> AsyncGenerator[TestClient, None]:
     """Instantiated test client with no privileges"""
-    _ = dockerdb
-    instance = TestClient(APP)
-    yield instance
+    _ = client
+    async with TestClient(APP) as instance:
+        LOGGER.debug("Yielding instance")
+        yield instance
+        LOGGER.debug("back")
+
+
+# FIXME: move the dockerdb and bind_and_create_all helpers to arkia11nmodels testhelpers
+#       (and do a bit of refactoring with the old stuff there too)
+async def bind_and_create_all() -> None:
+    """Create all schemas and tables"""
+    try:
+        LOGGER.debug("Acquiring connection")
+        async with WRAPPER.gino.acquire() as conn:
+            LOGGER.debug("Acquiring transaction")
+            async with conn.transaction():
+                LOGGER.debug("Creating a11n schema")
+                await models.db.status(sqlalchemy.schema.CreateSchema("a11n"))
+                LOGGER.debug("Creating tables")
+                await models.db.gino.create_all()
+    except DuplicateSchemaError:
+        pass
+
+
+@pytest.fixture(scope="session")
+def dockerdb(docker_ip: str, docker_services: Any, monkeysession: Any) -> Generator[str, None, None]:
+    """start docker container for db"""
+    LOGGER.debug("Monkeypatching env")
+    from arkia11nmodels import dbconfig  # pylint: disable=C0415
+
+    mp_values = {
+        "HOST": docker_ip,
+        "PORT": docker_services.port_for("db", 5432),
+        "PASSWORD": "modelstestpwd",  # pragma: allowlist secret
+        "USER": "postgres",
+        "DATABASE": "modelstest",
+    }
+    for key, value in mp_values.items():
+        monkeysession.setenv(f"DB_{key}", str(value))
+        monkeysession.setattr(dbconfig, key, value)
+
+    new_dsn = sqlalchemy.engine.url.URL(
+        drivername=dbconfig.DRIVER,
+        username=dbconfig.USER,
+        password=dbconfig.PASSWORD,
+        host=dbconfig.HOST,
+        port=dbconfig.PORT,
+        database=dbconfig.DATABASE,
+    )
+    monkeysession.setattr(dbconfig, "DSN", new_dsn)
+
+    yield str(dbconfig.DSN)

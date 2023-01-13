@@ -1,5 +1,6 @@
 """Middleware stuff"""
 # importing annotations from future blows up fastapi dependency injection
+from typing import Optional
 from dataclasses import dataclass, field
 import logging
 import asyncio
@@ -8,6 +9,7 @@ from sqlalchemy.engine.url import URL
 from starlette.types import Receive, Scope, Send
 from fastapi import FastAPI
 from gino import Gino
+from gino.exceptions import UninitializedError
 from arkia11nmodels import dbconfig
 
 # We can't mokeypatch gino-starlette into models this late
@@ -30,6 +32,20 @@ class DBWrapper:  # pylint: disable=R0902
     ssl: str = field(default=dbconfig.SSL)
     use_for_request: bool = field(default=dbconfig.USE_CONNECTION_FOR_REQUEST)
 
+    async def bind_gino(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+        """Bind gino to db"""
+        if self.gino._bind is not None:  # pylint: disable=W0212
+            LOGGER.warning("Already bound")
+            return
+        await self.gino.set_bind(
+            self.dsn,
+            echo=self.echo,
+            min_size=self.min_size,
+            max_size=self.max_size,
+            ssl=self.ssl,
+            loop=loop,
+        )
+
     async def app_startup_event(self) -> None:
         """App startup callback, connect to db or die"""
         LOGGER.info("Connecting to the database: {!r}".format(self.dsn))
@@ -37,13 +53,7 @@ class DBWrapper:  # pylint: disable=R0902
         while True:
             retries += 1
             try:
-                await self.gino.set_bind(
-                    self.dsn,
-                    echo=self.echo,
-                    min_size=self.min_size,
-                    max_size=self.max_size,
-                    ssl=self.ssl,
-                )
+                await self.bind_gino()
                 break
             except Exception as exc:  # pylint: disable=W0703
                 LOGGER.error("database connection failed {}".format(exc))
@@ -62,18 +72,21 @@ class DBWrapper:  # pylint: disable=R0902
 
     async def app_shutdown_event(self) -> None:
         """On app shutdown close the db connection"""
-        msg = "Closing database connection: {}"
-        LOGGER.info(
-            msg.format(repr(self.gino.bind)),
-            extra={"color_message": msg.format(self.gino.bind.repr(color=True))},
-        )
-        ginobound = self.gino.pop_bind()
-        await ginobound.close()
-        msg = "Closed database connection: {}"
-        LOGGER.info(
-            msg.format(repr(ginobound)),
-            extra={"color_message": msg.format(ginobound.repr(color=True))},
-        )
+        try:
+            msg = "Closing database connection: {}"
+            LOGGER.info(
+                msg.format(repr(self.gino.bind)),
+                extra={"color_message": msg.format(self.gino.bind.repr(color=True))},
+            )
+            ginobound = self.gino.pop_bind()
+            await ginobound.close()
+            msg = "Closed database connection: {}"
+            LOGGER.info(
+                msg.format(repr(ginobound)),
+                extra={"color_message": msg.format(ginobound.repr(color=True))},
+            )
+        except UninitializedError as exc:
+            LOGGER.exception("Ignoring {} during close".format(exc))
 
     def init_app(self, app: FastAPI) -> None:
         """Ibject into app"""
