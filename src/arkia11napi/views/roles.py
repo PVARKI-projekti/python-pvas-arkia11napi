@@ -70,7 +70,7 @@ async def get_role_assignees(pkstr: str) -> UserPager:
     # FIXME: actually paginate with DB cursor, the list method can get very expensive
     role = await get_or_404(Role, pkstr)
     users = await role.list_role_users()
-    pdusers = [DBUser.parse_obj(role.to_dict()) for user in users]
+    pdusers = [DBUser.parse_obj(user.to_dict()) for user in users]
     return UserPager(items=pdusers, count=len(users))
 
 

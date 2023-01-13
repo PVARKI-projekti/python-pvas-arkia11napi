@@ -67,6 +67,7 @@ def client(jwt_env: JWTHandler, dockerdb: str) -> Generator[TestClient, None, No
     instance = TestClient(APP)
     # FIXME: issue superadmin privileges when we get there (and create a real user + role for those)
     token = jwt_env.issue({"dummy": True})
+    LOGGER.debug("token={}".format(token))
     instance.headers.update({"Authorization": f"Bearer {token}"})
     yield instance
 
