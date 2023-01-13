@@ -22,7 +22,9 @@ async def public_key() -> FileResponse:
     return FileResponse(path=JWTHandler.singleton().pubkeypath, media_type="text/pain", filename="jwt.pub")
 
 
-@TOKEN_ROUTER.post("/api/v1/tokens", tags=["tokens"], response_model=TokenRequestResponse)
+@TOKEN_ROUTER.post(
+    "/api/v1/tokens", tags=["tokens"], response_model=TokenRequestResponse, status_code=status.HTTP_201_CREATED
+)
 async def request_token(
     req: TokenRequest, jwt: JWTPayload = Depends(JWTBearer(auto_error=False))
 ) -> TokenRequestResponse:

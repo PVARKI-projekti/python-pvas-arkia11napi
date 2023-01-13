@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 USER_ROUTER = APIRouter(dependencies=[Depends(JWTBearer(auto_error=True))])
 
 
-@USER_ROUTER.post("/api/v1/users", tags=["users"], response_model=DBUser)
+@USER_ROUTER.post("/api/v1/users", tags=["users"], response_model=DBUser, status_code=status.HTTP_201_CREATED)
 async def create_user(pduser: UserCreate) -> DBUser:
     """Create user"""
     # FIXME: check ACL

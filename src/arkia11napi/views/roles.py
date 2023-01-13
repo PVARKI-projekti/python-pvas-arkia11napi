@@ -20,7 +20,7 @@ LOGGER = logging.getLogger(__name__)
 ROLE_ROUTER = APIRouter(dependencies=[Depends(JWTBearer(auto_error=True))])
 
 
-@ROLE_ROUTER.post("/api/v1/roles", tags=["roles"], response_model=DBRole)
+@ROLE_ROUTER.post("/api/v1/roles", tags=["roles"], response_model=DBRole, status_code=status.HTTP_201_CREATED)
 async def create_role(pdrole: RoleCreate) -> DBRole:
     """Create a new role"""
     # FIXME: check ACL
