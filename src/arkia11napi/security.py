@@ -1,14 +1,15 @@
 """Security related stuff"""
 # importing annotations from future bloews up fastapi dependency injection
-from typing import Optional, Any, Dict, Mapping
+from typing import Optional, Any, Dict, Mapping, List, MutableMapping
 import logging
 from dataclasses import dataclass, field
 import functools
 from pathlib import Path
+import uuid
 
 import jwt as pyJWT  # too easy to accidentally override the module
 import pendulum
-from libadvian.binpackers import ensure_utf8
+from libadvian.binpackers import ensure_utf8, b64_to_uuid, ensure_str
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.types import PRIVATE_KEY_TYPES, PUBLIC_KEY_TYPES
 from cryptography.hazmat.backends import default_backend
@@ -16,6 +17,8 @@ from starlette.config import Config
 from starlette.datastructures import Secret
 from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from arkia11nmodels.schemas.role import ACLItem
+from arkia11nmodels.models import User
 
 LOGGER = logging.getLogger(__name__)
 JWT_LIFETIME = 60 * 60 * 2  # 2 hours in seconds
@@ -114,3 +117,84 @@ class JWTBearer(HTTPBearer):  # pylint: disable=R0903
         if not payload and self.auto_error:
             raise HTTPException(status_code=403, detail="Invalid or expired token.")
         return payload
+
+
+def jwt_acl_by_privilege(jwt: JWTPayload) -> MutableMapping[str, List[ACLItem]]:
+    """Helper to map the ACL by privilege name"""
+    ret: Dict[str, List[ACLItem]] = {}
+    if "acl" not in jwt or not jwt["acl"]:
+        LOGGER.warning("No 'acl' key in JWT, this should not be")
+        return ret
+    for aclitem in [ACLItem.parse_obj(item) for item in jwt["acl"]]:
+        if aclitem.privilege not in ret:
+            ret[aclitem.privilege] = []
+        ret[aclitem.privilege].append(aclitem)
+    return ret
+
+
+# FIXME: this should be in libadvian
+def graceful_decode_uuid(datain: str) -> Optional[uuid.UUID]:
+    """Try to decode input as uuid"""
+    try:
+        parsed = uuid.UUID(ensure_str(datain))
+        return parsed
+    except ValueError:
+        try:
+            parsed = b64_to_uuid(datain)
+            return parsed
+        except ValueError:
+            pass
+    return None
+
+
+# FIXME: This should be in some common library of ours
+def check_acl(  # pylint: disable=R0912
+    jwt: JWTPayload,
+    require_privilege: str,
+    self_user: Optional[User] = None,
+    require_target: Optional[str] = None,
+    auto_error: bool = True,
+) -> bool:
+    """Check ACL, returns granted or not (and in case of auto-error will throw 403,
+    self user is the user that would match a 'self' targeted rule"""
+    # PONDER: doing just a fixed (or startswith) comparison with target might not be enough, do we allow callables ?
+    #        or should those use cases just handle it themselves
+    by_privilege = jwt_acl_by_privilege(jwt)
+    if "fi.arki.superadmin" in by_privilege:
+        for item in by_privilege["fi.arki.superadmin"]:
+            if item.action is True:  # we do a hard type check on purpose
+                return True  # SuperAdmins are always good for everything
+
+    # PONDER: do we need "startswith" style comparisons ??
+    if require_privilege not in by_privilege:
+        if not auto_error:
+            return False
+        raise HTTPException(status_code=403, detail="Required privilege not granted.")
+
+    for item in by_privilege[require_privilege]:
+        # Ignore actions that are not explicit grants
+        if item.action is not True:
+            continue
+        # If target is required ignore those that do not match
+        if require_target and item.target != require_target:
+            continue
+        # No target defined or required, we're good
+        if not item.target:
+            return True
+
+        # Match self-target
+        if item.target == "self":
+            if not self_user:
+                LOGGER.warning("{} targets self but self_user not defined".format(item))
+                continue
+            if "userid" not in jwt:
+                LOGGER.warning("{} targets self but jwt has no key 'userid'".format(item))
+                continue
+            jwt_user_uuid = graceful_decode_uuid(jwt["userid"])
+            if jwt_user_uuid == self_user.pk:
+                return True
+
+    # fell through, deny-by-default
+    if not auto_error:
+        return False
+    raise HTTPException(status_code=403, detail="Required privilege not granted.")
