@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse, FileResponse
 from starlette import status
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
-from arkia11nmodels.models import Token
+from arkia11nmodels.models import Token, User
 
 from ..schemas.tokens import TokenRequestResponse, TokenPager
 from ..helpers import get_or_404
-from ..security import JWTHandler, JWTBearer, JWTPayload
+from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
 
 LOGGER = logging.getLogger(__name__)
 TOKEN_ROUTER = APIRouter()
@@ -48,8 +48,7 @@ async def use_token(token: str) -> RedirectResponse:
 @TOKEN_ROUTER.get("/api/v1/tokens", tags=["tokens"], response_model=TokenPager)
 async def list_tokens(jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> TokenPager:
     """List tokens"""
-    # FIXME: use auth, check ACL
-    _ = jwt
+    check_acl(jwt, "fi.arki.arkia11nmodels.token:read")
     tokens = await Token.query.where(
         Token.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
     ).gino.all()
@@ -66,16 +65,16 @@ async def list_tokens(jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> 
 @TOKEN_ROUTER.get("/api/v1/tokens/{pkstr}", tags=["tokens"], response_model=DBToken)
 async def get_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_error=False))) -> DBToken:
     """Get a single token"""
-    # FIXME: use auth, check ACL
-    _ = jwt
     token = await get_or_404(Token, pkstr)
+    user = await User.Get(token.user)
+    check_acl(jwt, "fi.arki.arkia11nmodels.token:read", self_user=user)
     return DBToken.parse_obj(token.to_dict())
 
 
 @TOKEN_ROUTER.delete("/api/v1/tokens/{pkstr}", tags=["tokens"], status_code=status.HTTP_204_NO_CONTENT)
 async def delete_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_error=False))) -> None:
     """Delete token"""
-    # FIXME: use auth, check ACL
-    _ = jwt
     token = await get_or_404(Token, pkstr)
+    user = await User.Get(token.user)
+    check_acl(jwt, "fi.arki.arkia11nmodels.token:delete", self_user=user)
     await token.update(deleted=pendulum.now("UTC")).apply()
