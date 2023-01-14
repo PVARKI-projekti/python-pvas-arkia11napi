@@ -3,7 +3,7 @@ from typing import List
 import logging
 
 import pendulum
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from starlette import status
 from arkia11nmodels.models import Role, User
 from arkia11nmodels.schemas.role import DBRole, RoleCreate
@@ -13,7 +13,7 @@ from arkia11nmodels.schemas.user import DBUser, UserList
 from ..schemas.roles import RolePager
 from ..schemas.users import UserPager
 from ..helpers import get_or_404
-from ..security import JWTBearer
+from ..security import JWTBearer, check_acl
 
 
 LOGGER = logging.getLogger(__name__)
@@ -21,9 +21,9 @@ ROLE_ROUTER = APIRouter(dependencies=[Depends(JWTBearer(auto_error=True))])
 
 
 @ROLE_ROUTER.post("/api/v1/roles", tags=["roles"], response_model=DBRole, status_code=status.HTTP_201_CREATED)
-async def create_role(pdrole: RoleCreate) -> DBRole:
+async def create_role(request: Request, pdrole: RoleCreate) -> DBRole:
     """Create a new role"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:create")
     role = Role(**pdrole.dict())
     await role.create()
     refresh = await Role.get(role.pk)
@@ -31,9 +31,9 @@ async def create_role(pdrole: RoleCreate) -> DBRole:
 
 
 @ROLE_ROUTER.get("/api/v1/roles", tags=["roles"], response_model=RolePager)
-async def list_roles() -> RolePager:
+async def list_roles(request: Request) -> RolePager:
     """List roles"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:read")
     roles = await Role.query.where(
         Role.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
     ).gino.all()
@@ -48,25 +48,25 @@ async def list_roles() -> RolePager:
 
 # FIXME: Add patch method and pydanctic schema for uppdating
 @ROLE_ROUTER.get("/api/v1/roles/{pkstr}", tags=["roles"], response_model=DBRole)
-async def get_role(pkstr: str) -> DBRole:
+async def get_role(request: Request, pkstr: str) -> DBRole:
     """Get a single role"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:read")
     role = await get_or_404(Role, pkstr)
     return DBRole.parse_obj(role.to_dict())
 
 
 @ROLE_ROUTER.delete("/api/v1/roles/{pkstr}", tags=["roles"], status_code=status.HTTP_204_NO_CONTENT)
-async def delete_role(pkstr: str) -> None:
+async def delete_role(request: Request, pkstr: str) -> None:
     """Delete role"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:delete")
     role = await get_or_404(Role, pkstr)
     await role.update(deleted=pendulum.now("UTC")).apply()
 
 
 @ROLE_ROUTER.get("/api/v1/roles/{pkstr}/users", tags=["roles"], response_model=UserPager)
-async def get_role_assignees(pkstr: str) -> UserPager:
+async def get_role_assignees(request: Request, pkstr: str) -> UserPager:
     """Get list of users assigned to role"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:read")
     # FIXME: actually paginate with DB cursor, the list method can get very expensive
     role = await get_or_404(Role, pkstr)
     users = await role.list_role_users()
@@ -75,9 +75,9 @@ async def get_role_assignees(pkstr: str) -> UserPager:
 
 
 @ROLE_ROUTER.post("/api/v1/roles/{pkstr}/users", tags=["roles"], response_model=UserList)
-async def assign_role(pkstr: str, userids: List[str]) -> UserList:
+async def assign_role(request: Request, pkstr: str, userids: List[str]) -> UserList:
     """Assign users this role, returns list of users added (if user is missing from list it already had role)"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:update")
     role = await get_or_404(Role, pkstr)
     # This will sadly mess things up for asyncpg with the way the gino middleware is set up
     # users = await asyncio.gather(*[get_or_404(User, userid) for userid in userids])
@@ -90,9 +90,9 @@ async def assign_role(pkstr: str, userids: List[str]) -> UserList:
 
 
 @ROLE_ROUTER.delete("/api/v1/roles/{pkstr}/users/{userid}", tags=["roles"], status_code=status.HTTP_204_NO_CONTENT)
-async def remove_role(pkstr: str, userid: str) -> None:
+async def remove_role(request: Request, pkstr: str, userid: str) -> None:
     """Remove user from this role"""
-    # FIXME: check ACL
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:delete")
     role = await get_or_404(Role, pkstr)
     user = await get_or_404(User, userid)
     await role.remove_from(user)

@@ -116,6 +116,8 @@ class JWTBearer(HTTPBearer):  # pylint: disable=R0903
             LOGGER.exception("Got problem {} decoding {}".format(exc, credentials))
         if not payload and self.auto_error:
             raise HTTPException(status_code=403, detail="Invalid or expired token.")
+        # Inject into request state to avoid Repeating Myself
+        request.state.jwt = payload
         return payload
 
 
