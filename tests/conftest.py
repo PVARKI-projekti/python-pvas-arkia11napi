@@ -1,19 +1,20 @@
 """pytest automagics"""
-from typing import Any, Generator, AsyncGenerator
+from typing import Any, Generator, AsyncGenerator, cast
 import asyncio
 import logging
 from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from libadvian.binpackers import uuid_to_b64
 from libadvian.logging import init_logging
 from async_asgi_testclient import TestClient
 from fastapi_mail import FastMail
 import sqlalchemy
+from asyncpg.exceptions import DuplicateSchemaError
+from arkia11nmodels import models
 from arkia11nmodels.testhelpers import monkeysession  # pylint: disable=W0611 ; # false positive
 
-from arkia11nmodels import models
-from asyncpg.exceptions import DuplicateSchemaError
 
 import arkia11napi.security
 from arkia11napi.security import JWTHandler
@@ -65,17 +66,40 @@ def mailer_suppress_send(monkeysession: Any) -> Generator[FastMail, None, None]:
     yield singleton
 
 
+async def get_or_create_user(email: str) -> models.User:
+    """Get by email or create"""
+    user = await models.User.query.where(models.User.email == email).gino.first()
+    if user:
+        return cast(models.User, user)
+    # no match, create
+    user = models.User(email=email)
+    await user.create()
+    user = await models.User.get(user.pk)
+    return cast(models.User, user)
+
+
 @pytest_asyncio.fixture(scope="session")
 async def client(jwt_env: JWTHandler, dockerdb: str) -> AsyncGenerator[TestClient, None]:
     """Instantiated test client with superadmin privileges"""
     _ = dockerdb
     async with TestClient(APP) as instance:
-        # FIXME: issue superadmin privileges when we get there (and create a real user + role for those)
-        token = jwt_env.issue({"dummy": True})
-        LOGGER.debug("token={}".format(token))
+        # We need to be inside the app context to have db connection initialized
+        await bind_and_create_all()
+        user = await get_or_create_user("test-superadmin@example.com")
+        token = jwt_env.issue(
+            {
+                "userid": uuid_to_b64(user.pk),  # type: ignore # false-positive
+                "acl": [
+                    {
+                        "privilege": "fi.arki.superadmin",
+                        "action": True,
+                    }
+                ],
+            }
+        )
+        LOGGER.debug("superadmin-token={}".format(token))
         instance.headers.update({"Authorization": f"Bearer {token}"})
 
-        await bind_and_create_all()
         LOGGER.debug("Yielding instance")
         yield instance
         LOGGER.debug("back")
@@ -86,6 +110,26 @@ async def unauth_client(client: TestClient) -> AsyncGenerator[TestClient, None]:
     """Instantiated test client with no privileges"""
     _ = client
     async with TestClient(APP) as instance:
+        LOGGER.debug("Yielding instance")
+        yield instance
+        LOGGER.debug("back")
+
+
+@pytest_asyncio.fixture(scope="session")
+async def enduser_client(jwt_env: JWTHandler, client: TestClient) -> AsyncGenerator[TestClient, None]:
+    """Instantiated test client with standard end-user privileges"""
+    _ = client
+    async with TestClient(APP) as instance:
+        # We need to be inside the app context to have db connection initialized
+        user = await get_or_create_user("test-enduser@example.com")
+        token = jwt_env.issue(
+            {
+                "userid": uuid_to_b64(user.pk),  # type: ignore # false-positive
+                "acl": models.User.default_acl.dict(),
+            }
+        )
+        LOGGER.debug("enduser-token={}".format(token))
+        instance.headers.update({"Authorization": f"Bearer {token}"})
         LOGGER.debug("Yielding instance")
         yield instance
         LOGGER.debug("back")

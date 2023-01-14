@@ -73,6 +73,13 @@ async def test_list_roles_unauth(unauth_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_list_roles_enduser(enduser_client: TestClient) -> None:
+    """Test we can't get roles listed as end-user"""
+    resp = await enduser_client.get("/api/v1/roles")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_list_roles(client: TestClient, three_roles: List[Role]) -> None:
     """Test we can get roles listed"""
     admins, tak_admins, tak_users = three_roles
