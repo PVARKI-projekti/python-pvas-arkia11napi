@@ -92,7 +92,7 @@ async def assign_role(request: Request, pkstr: str, userids: List[str]) -> UserL
 @ROLE_ROUTER.delete("/api/v1/roles/{pkstr}/users/{userid}", tags=["roles"], status_code=status.HTTP_204_NO_CONTENT)
 async def remove_role(request: Request, pkstr: str, userid: str) -> None:
     """Remove user from this role"""
-    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:delete")
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.role:update")
     role = await get_or_404(Role, pkstr)
     user = await get_or_404(User, userid)
     await role.remove_from(user)

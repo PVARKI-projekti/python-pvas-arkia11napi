@@ -162,6 +162,11 @@ def check_acl(  # pylint: disable=R0912
     # PONDER: doing just a fixed (or startswith) comparison with target might not be enough, do we allow callables ?
     #        or should those use cases just handle it themselves
     by_privilege = jwt_acl_by_privilege(jwt)
+    LOGGER.debug(
+        "require_privilege={}, by_privilege={}, self_user={},require_target={}".format(
+            by_privilege, require_privilege, self_user, require_target
+        )
+    )
     if "fi.arki.superadmin" in by_privilege:
         for item in by_privilege["fi.arki.superadmin"]:
             if item.action is True:  # we do a hard type check on purpose
