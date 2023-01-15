@@ -37,3 +37,9 @@ class TokenRequestResponse(BaseModel, extra="forbid"):
         + " Note that unauthorized requests will always 'succeed' to prevent enumerating valid users"
     )
     errordetail: Optional[str] = Field(description="If there was an error this might tell more")
+
+
+class TokenRefreshResponse(BaseModel, extra="forbid"):
+    """Response to token refresh request"""
+
+    jwt: str = Field(description="The newly issued JWT")

@@ -4,7 +4,7 @@ import logging
 
 import pendulum
 from libadvian.binpackers import uuid_to_b64
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi_mail import MessageSchema, MessageType
 from starlette import status
@@ -13,7 +13,7 @@ from starlette.datastructures import URL
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token, User, Role
 
-from ..schemas.tokens import TokenRequestResponse, TokenPager
+from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
 from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE
@@ -73,6 +73,28 @@ async def request_token(
         return TokenRequestResponse(sent=False, errordetail="Email send failed")
 
     return TokenRequestResponse(sent=True)
+
+
+@TOKEN_ROUTER.get("/api/v1/tokens/refresh", tags=["tokens"], response_model=TokenRefreshResponse)
+async def refresh_token(
+    response: Response, jwt: JWTPayload = Depends(JWTBearer(auto_error=True))
+) -> TokenRefreshResponse:
+    """Refresh your JWT"""
+    user = await get_or_404(User, jwt["userid"])
+    new_jwt = JWTHandler.singleton().issue(
+        {
+            "userid": uuid_to_b64(user.pk),  # type: ignore # false-positive
+            "acl": (await Role.resolve_user_acl(user)).dict(),
+        }
+    )
+    response.set_cookie(
+        key=JWT_COOKIE_NAME,
+        value=new_jwt,
+        httponly=True,  # The url we redirect to must pass the token back to any JS that needs to use it
+        domain=JWT_COOKIE_DOMAIN,
+        secure=JWT_COOKIE_SECURE,
+    )
+    return TokenRefreshResponse(jwt=new_jwt)
 
 
 @TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token")
