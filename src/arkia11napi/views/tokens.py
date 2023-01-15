@@ -11,7 +11,7 @@ from starlette import status
 from starlette.exceptions import HTTPException
 from starlette.datastructures import URL
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
-from arkia11nmodels.models import Token, User
+from arkia11nmodels.models import Token, User, Role
 
 from ..schemas.tokens import TokenRequestResponse, TokenPager
 from ..helpers import get_or_404
@@ -101,7 +101,7 @@ async def use_token(token: str, request: Request) -> RedirectResponse:
     jwt = JWTHandler.singleton().issue(
         {
             "userid": uuid_to_b64(user.pk),
-            "acl": User.default_acl.dict(),  # FIXME: merge role ACLs
+            "acl": (await Role.resolve_user_acl(user)).dict(),
         }
     )
     new_meta = dict(token_db.audit_meta)
