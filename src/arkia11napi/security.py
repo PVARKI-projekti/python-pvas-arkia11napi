@@ -98,11 +98,14 @@ HDL_SINGLETON: Optional[JWTHandler] = None
 
 JWTPayload = Mapping[str, Any]
 
+# FIXME: This should be in some common library of ours
+
 
 class JWTBearer(HTTPBearer):  # pylint: disable=R0903
     """Check JWT bearer tokens"""
 
     async def __call__(self, request: Request) -> Optional[JWTPayload]:  # type: ignore[override]
+        # FIXME: add cookie/query_param support
         credentials: Optional[HTTPAuthorizationCredentials] = await super().__call__(request)
         if not credentials:
             # autp-error will have raised already if no auth header

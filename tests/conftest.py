@@ -42,6 +42,8 @@ def jwt_env(monkeysession: Any) -> Generator[JWTHandler, None, None]:
     monkeysession.setenv("JWT_PRIVKEY_PATH", str(DATA_PATH / "jwtRS256.key"))
     monkeysession.setenv("JWT_PUBKEY_PATH", str(DATA_PATH / "jwtRS256.pub"))
     monkeysession.setenv("JWT_PRIVKEY_PASS", "Disparate-Letdown-Pectin-Natural")  # pragma: allowlist secret
+    monkeysession.setenv("JWT_COOKIE_SECURE", "0")
+    monkeysession.setenv("JWT_COOKIE_DOMAIN", "")
     monkeysession.setattr(arkia11napi.security, "HDL_SINGLETON", JWTHandler())
     singleton = JWTHandler.singleton()
     yield singleton

@@ -44,6 +44,14 @@ async def list_users(request: Request) -> UserPager:
     )
 
 
+@USER_ROUTER.get("/api/v1/users/me", tags=["users"], response_model=DBUser, name="my_user")
+async def get_my_user(request: Request) -> DBUser:
+    """Get current JWT session user"""
+    user = await get_or_404(User, request.state.jwt["userid"])
+    check_acl(request.state.jwt, "fi.arki.arkia11nmodels.user:read", self_user=user)
+    return DBUser.parse_obj(user.to_dict())
+
+
 # FIXME: Add patch method and pydanctic schema for uppdating
 @USER_ROUTER.get("/api/v1/users/{pkstr}", tags=["users"], response_model=DBUser)
 async def get_user(request: Request, pkstr: str) -> DBUser:

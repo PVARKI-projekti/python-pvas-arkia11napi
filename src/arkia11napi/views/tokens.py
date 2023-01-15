@@ -1,5 +1,5 @@
 """Token relaed endpoints"""
-from typing import cast
+from typing import List, cast
 import logging
 
 import pendulum
@@ -8,12 +8,15 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse, FileResponse
 from fastapi_mail import MessageSchema, MessageType
 from starlette import status
+from starlette.exceptions import HTTPException
+from starlette.datastructures import URL
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token, User
 
 from ..schemas.tokens import TokenRequestResponse, TokenPager
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
+from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE
 from ..mailer import singleton as getmailer
 
 LOGGER = logging.getLogger(__name__)
@@ -44,11 +47,13 @@ async def request_token(
         return TokenRequestResponse(sent=True)
 
     user = cast(User, user)
-    # FIXME: figure what to do with audit_meta
     token = Token.for_user(user)
     send_to = getattr(user, tkreq.deliver_via)
     token.sent_to = send_to
-    # FIXME redirect etc, check all props
+    if not tkreq.redirect is None:
+        redir_verify = URL(tkreq.redirect)  # Make sure the url is parseable
+        token.redirect = str(redir_verify)
+    # FIXME: figure what to do with audit_meta
     await token.create()
     token = Token.get(token.pk)
     token_url = request.url_for("use_token", token=uuid_to_b64(token.pk))  # type: ignore # false positive
@@ -72,24 +77,71 @@ async def request_token(
 
 @TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token")
 @TOKEN_ROUTER.post("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse)
-async def use_token(token: str) -> RedirectResponse:
+async def use_token(token: str, request: Request) -> RedirectResponse:
     """Use a token"""
-    # FIXME: implement
-    _ = token
+    token_db = await get_or_404(Token, token)
+    token_db = cast(Token, token_db)
+    if token_db.used:
+        raise HTTPException(
+            status.HTTP_410_GONE,
+            "{} already used on {}".format(token, token_db.used.isoformat()),
+        )
+    if token_db.expires < pendulum.now("UTC"):
+        raise HTTPException(
+            status.HTTP_410_GONE,
+            "{} expired on {}".format(token, token_db.expires.isoformat()),
+        )
+    user = await User.get(token_db.user)
+    if not user or user.deleted:
+        raise HTTPException(
+            status.HTTP_410_GONE,
+            "User {} is no longer valid".format(token_db.user),
+        )
+
+    jwt = JWTHandler.singleton().issue(
+        {
+            "userid": uuid_to_b64(user.pk),
+            "acl": User.default_acl.dict(),  # FIXME: merge role ACLs
+        }
+    )
+    new_meta = dict(token_db.audit_meta)
+    # FIXME: figure what to do with audit_meta
+    await token_db.update(audit_meta=new_meta, used=pendulum.now("UTC"))
+
+    if token_db.redirect is None:
+        destination = request.url_for("my_user")
+    else:
+        destination = URL(token_db.redirect)
+        destination.include_query_params(JWT_COOKIE_NAME=jwt)
+
     # See-other needed to redirect from POST to GET
-    return RedirectResponse("/api/v1", status_code=status.HTTP_303_SEE_OTHER)
+    resp = RedirectResponse(str(destination), status_code=status.HTTP_303_SEE_OTHER)
+    resp.set_cookie(
+        key=JWT_COOKIE_NAME,
+        value=jwt,
+        httponly=True,  # The url we redirect to must pass the token back to any JS that needs to use it
+        domain=JWT_COOKIE_DOMAIN,
+        secure=JWT_COOKIE_SECURE,
+    )
+    return resp
 
 
 @TOKEN_ROUTER.get("/api/v1/tokens", tags=["tokens"], response_model=TokenPager)
 async def list_tokens(jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> TokenPager:
-    """List tokens"""
+    """List tokens, audit_meta is always empty in this list, get a specific token with audit privilege to see it"""
     check_acl(jwt, "fi.arki.arkia11nmodels.token:read")
-    tokens = await Token.query.where(
-        Token.deleted == None  # pylint: disable=C0121 ; # "is None" will create invalid query
-    ).gino.all()
+    tokens = (
+        await Token.query.where(Token.deleted == None)  # pylint: disable=C0121 ; # "is None" will create invalid query
+        .order_by(Token.created.desc())
+        .gino.all()
+    )
     if not tokens:
         return TokenPager(items=[], count=0)
-    pdtokens = [DBToken.parse_obj(token.to_dict()) for token in tokens]
+    pdtokens: List[DBToken] = []
+    for token in tokens:
+        pdtoken = DBToken.parse_obj(token.to_dict())
+        pdtoken.audit_meta = {}
+        pdtokens.append(pdtoken)
     return TokenPager(
         count=len(pdtokens),
         items=pdtokens,
@@ -99,10 +151,12 @@ async def list_tokens(jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> 
 # FIXME: Add patch method and pydanctic schema for uppdating
 @TOKEN_ROUTER.get("/api/v1/tokens/{pkstr}", tags=["tokens"], response_model=DBToken)
 async def get_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_error=False))) -> DBToken:
-    """Get a single token"""
+    """Get a single token, audit_meta is only visible to those with audit privilege"""
     token = await get_or_404(Token, pkstr)
     user = await User.Get(token.user)
     check_acl(jwt, "fi.arki.arkia11nmodels.token:read", self_user=user)
+    if not check_acl(jwt, "fi.arki.arkia11nmodels.token:audit", self_user=user, auto_error=False):
+        token.audit_meta = {}
     return DBToken.parse_obj(token.to_dict())
 
 
