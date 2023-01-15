@@ -42,7 +42,7 @@ async def request_token(
     user = await User.query.where(getattr(User, tkreq.deliver_via) == tkreq.target).gino.first()
     if not user:
         LOGGER.info("Could not find matching user for {}".format(tkreq))
-        if not check_acl(jwt, "fi.arki.arkia11nmodels.token:read", auto_error=False):
+        if not check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read", auto_error=False):
             return TokenRequestResponse(sent=False, errordetail="User not found")
         return TokenRequestResponse(sent=True)
 
@@ -129,7 +129,7 @@ async def use_token(token: str, request: Request) -> RedirectResponse:
 @TOKEN_ROUTER.get("/api/v1/tokens", tags=["tokens"], response_model=TokenPager)
 async def list_tokens(jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> TokenPager:
     """List tokens, audit_meta is always empty in this list, get a specific token with audit privilege to see it"""
-    check_acl(jwt, "fi.arki.arkia11nmodels.token:read")
+    check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read")
     tokens = (
         await Token.query.where(Token.deleted == None)  # pylint: disable=C0121 ; # "is None" will create invalid query
         .order_by(Token.created.desc())
@@ -154,8 +154,8 @@ async def get_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_error=F
     """Get a single token, audit_meta is only visible to those with audit privilege"""
     token = await get_or_404(Token, pkstr)
     user = await User.Get(token.user)
-    check_acl(jwt, "fi.arki.arkia11nmodels.token:read", self_user=user)
-    if not check_acl(jwt, "fi.arki.arkia11nmodels.token:audit", self_user=user, auto_error=False):
+    check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read", self_user=user)
+    if not check_acl(jwt, "fi.pvarki.arkia11nmodels.token:audit", self_user=user, auto_error=False):
         token.audit_meta = {}
     return DBToken.parse_obj(token.to_dict())
 
@@ -165,5 +165,5 @@ async def delete_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_erro
     """Delete token"""
     token = await get_or_404(Token, pkstr)
     user = await User.Get(token.user)
-    check_acl(jwt, "fi.arki.arkia11nmodels.token:delete", self_user=user)
+    check_acl(jwt, "fi.pvarki.arkia11nmodels.token:delete", self_user=user)
     await token.update(deleted=pendulum.now("UTC")).apply()

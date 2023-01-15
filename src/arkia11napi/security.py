@@ -170,8 +170,8 @@ def check_acl(  # pylint: disable=R0912
             by_privilege, require_privilege, self_user, require_target
         )
     )
-    if "fi.arki.superadmin" in by_privilege:
-        for item in by_privilege["fi.arki.superadmin"]:
+    if "fi.pvarki.superadmin" in by_privilege:
+        for item in by_privilege["fi.pvarki.superadmin"]:
             if item.action is True:  # we do a hard type check on purpose
                 return True  # SuperAdmins are always good for everything
 

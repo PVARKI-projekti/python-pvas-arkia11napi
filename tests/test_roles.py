@@ -25,7 +25,7 @@ async def three_roles(dockerdb: str) -> AsyncGenerator[List[Role], None]:
         displayname="Test: SuperAdmins",
         acl=[
             {
-                "privilege": "fi.arki.superadmin",
+                "privilege": "fi.pvarki.superadmin",
                 "action": True,
             }
         ],
@@ -35,7 +35,7 @@ async def three_roles(dockerdb: str) -> AsyncGenerator[List[Role], None]:
         displayname="Test: TAK admins",
         acl=[
             {
-                "privilege": "fi.arki.takserver:admin",
+                "privilege": "fi.pvarki.takserver:admin",
                 "target": "someserver.arki.fi",
                 "action": True,
             }
@@ -46,7 +46,7 @@ async def three_roles(dockerdb: str) -> AsyncGenerator[List[Role], None]:
         displayname="Test: TAK users",
         acl=[
             {
-                "privilege": "fi.arki.takserver:user",
+                "privilege": "fi.pvarki.takserver:user",
                 "target": "someserver.arki.fi:self",
                 "action": True,
             }

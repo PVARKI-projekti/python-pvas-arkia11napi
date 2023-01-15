@@ -93,7 +93,7 @@ async def client(jwt_env: JWTHandler, dockerdb: str) -> AsyncGenerator[TestClien
                 "userid": uuid_to_b64(user.pk),  # type: ignore # false-positive
                 "acl": [
                     {
-                        "privilege": "fi.arki.superadmin",
+                        "privilege": "fi.pvarki.superadmin",
                         "action": True,
                     }
                 ],
