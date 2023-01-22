@@ -56,6 +56,14 @@ Build image, create container and start it::
     docker create --name arkia11napi_devel -v `pwd`":/app" -it `echo $DOCKER_SSHAGENT` arkia11napi:devel_shell
     docker start -i arkia11napi_devel
 
+Though you will also need database & mailhog so it might be better to fire up this composition::
+
+    docker-compose -f docker-compose_local.yml -f docker-compose_local_reload.yml up
+
+You can then get a shell with::
+
+    docker-compose -f docker-compose_local.yml -f docker-compose_local_reload.yml exec -it api /bin/zsh -l
+
 pre-commit considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -76,7 +84,7 @@ You can use the devel shell to run py.test when doing development, for CI use
 the "tox" target in the Dockerfile::
 
     docker build --ssh default --target tox -t arkia11napi:tox .
-    docker run --rm -it -v `pwd`":/app" `echo $DOCKER_SSHAGENT` arkia11napi:tox
+    docker run --rm -it -v `pwd`":/app" `echo $DOCKER_SSHAGENT` --net host -v /var/run/docker.sock:/var/run/docker.sock arkia11napi:tox
 
 Production docker
 ^^^^^^^^^^^^^^^^^

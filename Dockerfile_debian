@@ -13,6 +13,21 @@ RUN export RESOLVED_VERSIONS=`pyenv_resolve $PYTHON_VERSIONS` \
     && pip install -U tox \
     && apt-get update && apt-get install -y \
         git \
+        libpq-dev \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release \
+    # Add docker repo
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y \
+        docker-ce-cli \
+        docker-compose-plugin \
+        docker-compose \
+    && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && true
 
@@ -47,6 +62,7 @@ RUN apt-get update && apt-get install -y \
         tini \
         openssh-client \
         cargo \
+        libpq-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     # githublab ssh
@@ -104,6 +120,7 @@ RUN --mount=type=ssh apt-get update && apt-get install -y \
         libzmq5 \
         tini \
         git \
+        libpq5 \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && chmod a+x /docker-entrypoint.sh \
@@ -121,7 +138,23 @@ ENTRYPOINT ["/usr/bin/tini", "--", "/docker-entrypoint.sh"]
 FROM builder_base as devel_build
 # Install deps
 WORKDIR /pysetup
-RUN --mount=type=ssh source /.venv/bin/activate \
+RUN --mount=type=ssh apt-get update && apt-get install -y \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release \
+    # Add docker repo
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y \
+        docker-ce-cli \
+        docker-compose-plugin \
+        docker-compose \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/* \
+    && source /.venv/bin/activate \
     && poetry install --no-interaction --no-ansi \
     && true
 

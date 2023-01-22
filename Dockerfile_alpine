@@ -12,6 +12,9 @@ RUN export RESOLVED_VERSIONS=`pyenv_resolve $PYTHON_VERSIONS` \
     && poetry self update $POETRY_VERSION || pip install -U poetry==$POETRY_VERSION \
     && pip install -U tox \
     && apk add --no-cache \
+        libpq-dev \
+        docker-cli \
+        docker-compose \
         git \
     && true
 
@@ -48,6 +51,7 @@ RUN apk add --no-cache \
         tini \
         openssh-client \
         cargo \
+        libpq-dev \
     # githublab ssh
     && mkdir -p -m 0700 ~/.ssh && ssh-keyscan gitlab.com github.com | sort > ~/.ssh/known_hosts \
     # Installing `poetry` package manager:
@@ -101,6 +105,7 @@ RUN --mount=type=ssh apk add --no-cache \
         bash \
         tini \
         git \
+        libpq \
     && chmod a+x /docker-entrypoint.sh \
     && WHEELFILE=`echo /tmp/wheelhouse/arkia11napi-*.whl` \
     && pip3 install --find-links=/tmp/wheelhouse/ "$WHEELFILE"[all] \
@@ -117,6 +122,9 @@ FROM builder_base as devel_build
 # Install deps
 WORKDIR /pysetup
 RUN --mount=type=ssh source /.venv/bin/activate \
+    && apk add --no-cache \
+        docker-cli \
+        docker-compose \
     && poetry install --no-interaction --no-ansi \
     && true
 
