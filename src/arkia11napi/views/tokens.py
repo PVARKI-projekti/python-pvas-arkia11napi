@@ -55,8 +55,9 @@ async def request_token(
         token.redirect = str(redir_verify)
     # FIXME: figure what to do with audit_meta
     await token.create()
-    token = Token.get(token.pk)
-    token_url = request.url_for("use_token", token=uuid_to_b64(token.pk))  # type: ignore # false positive
+    token = await Token.get(token.pk)
+    # See https://github.com/encode/starlette/issues/560 on why we do it like this
+    token_url = request.url_for("use_token_get") + f"?token={uuid_to_b64(token.pk)}"  # type: ignore # false positive
 
     mailer = getmailer()
     msg = MessageSchema(
@@ -97,8 +98,8 @@ async def refresh_token(
     return TokenRefreshResponse(jwt=new_jwt)
 
 
-@TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token")
-@TOKEN_ROUTER.post("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse)
+@TOKEN_ROUTER.post("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token_post")
+@TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token_get")
 async def use_token(token: str, request: Request) -> RedirectResponse:
     """Use a token"""
     token_db = await get_or_404(Token, token)
@@ -128,7 +129,7 @@ async def use_token(token: str, request: Request) -> RedirectResponse:
     )
     new_meta = dict(token_db.audit_meta)
     # FIXME: figure what to do with audit_meta
-    await token_db.update(audit_meta=new_meta, used=pendulum.now("UTC"))
+    await token_db.update(audit_meta=new_meta, used=pendulum.now("UTC")).apply()
 
     if token_db.redirect is None:
         destination = request.url_for("my_user")
