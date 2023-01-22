@@ -64,6 +64,11 @@ You can then get a shell with::
 
     docker-compose -f docker-compose_local.yml -f docker-compose_local_reload.yml exec -it api /bin/zsh -l
 
+To initialize superadmin role and user with that role in the shell run::
+
+    arkia11napi init-admin testuser@example.com
+
+
 pre-commit considerations
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
