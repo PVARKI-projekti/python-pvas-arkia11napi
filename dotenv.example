@@ -17,3 +17,11 @@ MAIL_SSL_TLS="0" # Force TLS
 # Templating and stylesheets, if you want to override for some reason
 # STATIC_PATH="/path/to/directory"
 # TEMPLATES_PATH="/path/to/directory"
+
+# Database config, see arkin11models.dbconfig for details
+#DB_HOST=localhost
+#DB_PASSWORD=arkipwd
+#DB_USER=postgres
+#DB_DATABASE=arki
+#DB_PORT=56432
+#DB_SSL=disable

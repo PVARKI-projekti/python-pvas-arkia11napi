@@ -84,7 +84,7 @@ Production docker
 There's a "production" target as well for running the application, remember to change that
 architecture tag to arm64 if building on ARM::
 
-    docker build --ssh default --target production -t arkia11napi:latest .
+    docker build --ssh default --target production -t arkia11napi:amd64-latest .
     docker run -it --name arkia11napi arkia11napi:amd64-latest
 
 Development
