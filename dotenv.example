@@ -1,7 +1,9 @@
 # JWT keys
 JWT_PRIVKEY_PATH="tests/data/jwtRS256.key"
 JWT_PUBKEY_PATH="tests/data/jwtRS256.pub"
-JWT_PRIVKEY_PASS="Disparate-Letdown-Pectin-Natural"
+JWT_PRIVKEY_PASS="Disparate-Letdown-Pectin-Natural"3
+#JWT_COOKIE_SECURE=0  # comment out for non-ts testing
+#JWT_COOKIE_DOMAIN="" # commend out for testing outside of pvarki.fi (maybe define domain)
 
 # Mailer config (don't ask about some of the key names)
 MAIL_FROM="testsender@example.com"

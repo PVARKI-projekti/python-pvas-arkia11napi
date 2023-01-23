@@ -16,7 +16,7 @@ x-mailconfig_env: &mailconfig_env
   MAIL_FROM: "testsender@example.com"
   #SUPPRESS_SEND: 1 # If you need to suppress for a moment
   MAIL_USERNAME: "" # MUST be set even if not used
-  MAIL_PASSWOR: "" # MUST be set even if not used
+  MAIL_PASSWORD: "" # MUST be set even if not used
   USE_CREDENTIALS: "0" # Set to 1 if you need user/pass for the server
   MAIL_PORT: &mailhog_smtp 1125 # MUST be explicitly set anyway, 1025 is MailHog default
   MAIL_SERVER: "172.17.0.1"
@@ -28,6 +28,8 @@ x-jwtconfig_env: &jwtconfig_env
   JWT_PRIVKEY_PATH: "tests/data/jwtRS256.key"
   JWT_PUBKEY_PATH: "tests/data/jwtRS256.pub"
   JWT_PRIVKEY_PASS: "Disparate-Letdown-Pectin-Natural" # pragma: allowlist secret
+  JWT_COOKIE_SECURE: "0"
+  JWT_COOKIE_DOMAIN: ""
 
 
 services:
