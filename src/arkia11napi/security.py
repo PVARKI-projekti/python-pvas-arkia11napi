@@ -119,6 +119,8 @@ class JWTBearer(HTTPBearer):  # pylint: disable=R0903
             if credentials.scheme != "Bearer":
                 raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
             jwt_b64 = credentials.credentials
+        if not jwt_b64 and self.auto_error:
+            raise HTTPException(status_code=403, detail="Not authenticated")
         try:
             payload = JWTHandler.singleton().decode(jwt_b64)
         except Exception as exc:  # pylint: disable=W0703
