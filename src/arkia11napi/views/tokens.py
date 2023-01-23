@@ -10,13 +10,14 @@ from fastapi_mail import MessageSchema, MessageType
 from starlette import status
 from starlette.exceptions import HTTPException
 from starlette.datastructures import URL
+from jinja2 import Environment, FileSystemLoader
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token, User, Role
 
 from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
-from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE
+from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE, TEMPLATES_PATH
 from ..mailer import singleton as getmailer
 
 LOGGER = logging.getLogger(__name__)
@@ -59,12 +60,14 @@ async def request_token(
     # See https://github.com/encode/starlette/issues/560 on why we do it like this
     token_url = request.url_for("use_token_get") + f"?token={uuid_to_b64(token.pk)}"  # type: ignore # false positive
 
+    template = Environment(loader=FileSystemLoader(TEMPLATES_PATH), autoescape=True).get_template("token_email.txt")
+
     mailer = getmailer()
     msg = MessageSchema(
         subject="PVARKI login token",  # FIXME: make configurable in the request or env based default
         recipients=[send_to],
         subtype=MessageType.plain,
-        template_body={"login_url": token_url},
+        body=template.render(login_url=token_url),
     )
     try:
         await mailer.send_message(msg, template_name="token_email.txt")
