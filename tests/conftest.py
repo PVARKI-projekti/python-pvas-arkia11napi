@@ -1,8 +1,9 @@
 """pytest automagics"""
-from typing import Any, Generator, AsyncGenerator, cast
+from typing import Any, Generator, AsyncGenerator, List, cast
 import asyncio
 import logging
 from pathlib import Path
+import random
 
 import pytest
 import pytest_asyncio
@@ -14,6 +15,8 @@ import sqlalchemy
 from asyncpg.exceptions import DuplicateSchemaError
 from arkia11nmodels import models
 from arkia11nmodels.testhelpers import monkeysession  # pylint: disable=W0611 ; # false positive
+from arkia11nmodels.models.role import UserRole
+from arkia11nmodels.models import User, Role
 
 
 import arkia11napi.security
@@ -158,15 +161,19 @@ async def bind_and_create_all() -> None:
 def dockerdb(docker_ip: str, docker_services: Any, monkeysession: Any) -> Generator[str, None, None]:
     """start docker container for db"""
     LOGGER.debug("Monkeypatching env")
+    _ = docker_services
     from arkia11nmodels import dbconfig  # pylint: disable=C0415
 
     mp_values = {
         "HOST": docker_ip,
         "PORT": docker_services.port_for("db", 5432),
-        "PASSWORD": "modelstestpwd",  # pragma: allowlist secret
+        "PASSWORD": "apitestpwd",  # pragma: allowlist secret
         "USER": "postgres",
-        "DATABASE": "modelstest",
+        "DATABASE": "a11napitest",
+        "RETRY_LIMIT": "10",
+        "RETRY_INTERVAL": "3",
     }
+    LOGGER.debug("mp_values={}".format(mp_values))
     for key, value in mp_values.items():
         monkeysession.setenv(f"DB_{key}", str(value))
         monkeysession.setattr(dbconfig, key, value)
@@ -181,4 +188,80 @@ def dockerdb(docker_ip: str, docker_services: Any, monkeysession: Any) -> Genera
     )
     monkeysession.setattr(dbconfig, "DSN", new_dsn)
 
+    # Wrapper got already initialized and does not inherit the new values
+    monkeysession.setattr(WRAPPER, "dsn", new_dsn)
+    monkeysession.setattr(WRAPPER, "retry_limit", int(mp_values["RETRY_LIMIT"]))
+    monkeysession.setattr(WRAPPER, "retry_interval", int(mp_values["RETRY_INTERVAL"]))
+
+    LOGGER.debug("yielding {}".format(str(dbconfig.DSN)))
     yield str(dbconfig.DSN)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def three_roles(dockerdb: str) -> AsyncGenerator[List[Role], None]:
+    """Create three roles and yield them, then nuke"""
+    _ = dockerdb
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
+    admins = Role(
+        displayname="Test: SuperAdmins",
+        acl=[
+            {
+                "privilege": "fi.pvarki.superadmin",
+                "action": True,
+            }
+        ],
+    )
+    await admins.create()
+    takadmins = Role(
+        displayname="Test: TAK admins",
+        acl=[
+            {
+                "privilege": "fi.pvarki.takserver:admin",
+                "target": "someserver.arki.fi",
+                "action": True,
+            }
+        ],
+    )
+    await takadmins.create()
+    takusers = Role(
+        displayname="Test: TAK users",
+        acl=[
+            {
+                "privilege": "fi.pvarki.takserver:user",
+                "target": "someserver.arki.fi:self",
+                "action": True,
+            }
+        ],
+    )
+    await takusers.create()
+    # Refresh the objects from DB and yield
+    ret: List[Role] = []
+    for role in (admins, takadmins, takusers):
+        ret.append(await Role.get(role.pk))
+    yield ret
+
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
+    for role in ret:
+        await UserRole.delete.where(UserRole.role == role.pk).gino.status()  # Nuke leftovers
+        await role.delete()
+
+
+@pytest_asyncio.fixture(scope="session")
+async def three_users(dockerdb: str) -> AsyncGenerator[List[User], None]:
+    """Create three roles and yield them, then nuke"""
+    _ = dockerdb
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
+    ret: List[User] = []
+    domain = f"test{random.randint(1,100)}.example.com"  # nosec
+
+    for idx in range(3):
+        user = User(email=f"testuser{idx}@{domain}")  # nosec
+        await user.create()
+        ret.append(await User.get(user.pk))
+
+    yield ret
+
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
+    for user in ret:
+        await UserRole.delete.where(UserRole.user == user.pk).gino.status()  # Nuke leftovers
+        await user.delete()

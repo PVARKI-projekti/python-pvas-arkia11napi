@@ -3,8 +3,8 @@ services:
   db:
     image: postgres:15.1
     environment:
-      POSTGRES_DB: modelstest
-      POSTGRES_PASSWORD: modelstestpwd # pragma: allowlist secret
+      POSTGRES_DB: a11napitest
+      POSTGRES_PASSWORD: apitestpwd # pragma: allowlist secret
       LC_COLLATE: "C.UTF-8"
     ports:
       - "55432:5432"

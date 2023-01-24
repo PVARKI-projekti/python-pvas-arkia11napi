@@ -1,68 +1,16 @@
 """Test role endpoint stuff"""
-from typing import AsyncGenerator, List
+from typing import List
 import logging
-import asyncio
 
 import pytest
-import pytest_asyncio
 from libadvian.binpackers import uuid_to_b64, b64_to_uuid
 from async_asgi_testclient import TestClient
 
-from arkia11nmodels.models.role import Role, UserRole
+from arkia11nmodels.models import Role, User
 from arkia11nmodels.schemas.role import DBRole, RoleCreate
-from arkia11napi.api import WRAPPER
 
 # pylint: disable=W0621
 LOGGER = logging.getLogger(__name__)
-
-
-@pytest_asyncio.fixture(scope="module")
-async def three_roles(dockerdb: str) -> AsyncGenerator[List[Role], None]:
-    """Create three roles and yield them, then nuke"""
-    _ = dockerdb
-    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
-    admins = Role(
-        displayname="Test: SuperAdmins",
-        acl=[
-            {
-                "privilege": "fi.pvarki.superadmin",
-                "action": True,
-            }
-        ],
-    )
-    await admins.create()
-    takadmins = Role(
-        displayname="Test: TAK admins",
-        acl=[
-            {
-                "privilege": "fi.pvarki.takserver:admin",
-                "target": "someserver.arki.fi",
-                "action": True,
-            }
-        ],
-    )
-    await takadmins.create()
-    takusers = Role(
-        displayname="Test: TAK users",
-        acl=[
-            {
-                "privilege": "fi.pvarki.takserver:user",
-                "target": "someserver.arki.fi:self",
-                "action": True,
-            }
-        ],
-    )
-    await takusers.create()
-    # Refresh the objects from DB and yield
-    ret: List[Role] = []
-    for role in (admins, takadmins, takusers):
-        ret.append(await Role.get(role.pk))
-    yield ret
-
-    for role in ret:
-        await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
-        await UserRole.delete.where(UserRole.role == role.pk).gino.status()  # Nuke leftovers
-        await role.delete()
 
 
 @pytest.mark.asyncio
@@ -107,7 +55,7 @@ async def test_get_roles(client: TestClient, three_roles: List[Role]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_delete(client: TestClient) -> None:
+async def test_create_delete_role(client: TestClient) -> None:
     """Test that we can create and delete role"""
     crole = RoleCreate(displayname="Test: HTTP API create test")
     resp = await client.post("/api/v1/roles", json=crole.dict())
@@ -124,3 +72,43 @@ async def test_create_delete(client: TestClient) -> None:
     # Re-fetch (should fail)
     resp3 = await client.get(f"/api/v1/roles/{str(payload.pk)}")
     assert resp3.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_assign_via_role(client: TestClient, three_roles: List[Role], three_users: List[User]) -> None:
+    """Test role assignment from roles side"""
+    # pylint: disable=R0914
+    _admins, tak_admins, _tak_users = three_roles
+    _user1, user2, user3 = three_users
+
+    # Assign role to user
+    resp1 = await client.post(f"/api/v1/roles/{str(tak_admins.pk)}/users", json=[str(user2.pk), str(user3.pk)])
+    assert resp1.status_code == 200
+    pl1 = resp1.json()
+    assert isinstance(pl1, list)
+    dnames1 = [item["displayname"] for item in pl1]
+    assert user2.displayname in dnames1
+    assert user3.displayname in dnames1
+
+    # List users with role and make sure the added one is among them
+    resp2 = await client.get(f"/api/v1/roles/{str(tak_admins.pk)}/users")
+    assert resp2.status_code == 200
+    pl2 = resp2.json()
+    dnames2 = [item["displayname"] for item in pl2["items"]]
+    assert user2.displayname in dnames2
+
+    # un-assign
+    resp3 = await client.delete(f"/api/v1/roles/{str(tak_admins.pk)}/users/{str(user2.pk)}")
+    assert resp3.status_code == 204
+
+    # List users with role and make sure the added one is not among them
+    resp4 = await client.get(f"/api/v1/roles/{str(tak_admins.pk)}/users")
+    assert resp4.status_code == 200
+    pl4 = resp4.json()
+    dnames3 = [item["displayname"] for item in pl4["items"]]
+    assert user2.displayname not in dnames3
+    assert user3.displayname in dnames3
+
+    # un-assign
+    resp5 = await client.delete(f"/api/v1/roles/{str(tak_admins.pk)}/users/{str(user3.pk)}")
+    assert resp5.status_code == 204
