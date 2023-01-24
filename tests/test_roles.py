@@ -81,7 +81,7 @@ async def test_assign_via_role(client: TestClient, three_roles: List[Role], thre
     _admins, tak_admins, _tak_users = three_roles
     _user1, user2, user3 = three_users
 
-    # Assign role to user
+    # Assign two users the role
     resp1 = await client.post(f"/api/v1/roles/{str(tak_admins.pk)}/users", json=[str(user2.pk), str(user3.pk)])
     assert resp1.status_code == 200
     pl1 = resp1.json()
@@ -96,6 +96,7 @@ async def test_assign_via_role(client: TestClient, three_roles: List[Role], thre
     pl2 = resp2.json()
     dnames2 = [item["displayname"] for item in pl2["items"]]
     assert user2.displayname in dnames2
+    assert user3.displayname in dnames2
 
     # un-assign
     resp3 = await client.delete(f"/api/v1/roles/{str(tak_admins.pk)}/users/{str(user2.pk)}")

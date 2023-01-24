@@ -75,7 +75,7 @@ async def get_roles(request: Request, pkstr: str) -> RoleList:
     # FIXME: user a pager class
     user = await get_or_404(User, pkstr)
     check_acl(request.state.jwt, "fi.pvarki.arkia11nmodels.user:read", self_user=user)
-    roles = await Role.resolve_user_roles(user)
+    roles = await Role.list_user_roles(user)
     pdroles = [DBRole.parse_obj(role.to_dict()) for role in roles]
     return RoleList(pdroles)
 
