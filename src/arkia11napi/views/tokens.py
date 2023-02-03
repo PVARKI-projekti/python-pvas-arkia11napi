@@ -101,7 +101,6 @@ async def refresh_token(
     return TokenRefreshResponse(jwt=new_jwt)
 
 
-@TOKEN_ROUTER.post("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token_post")
 @TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token_get")
 async def use_token(token: str, request: Request) -> RedirectResponse:
     """Use a token"""

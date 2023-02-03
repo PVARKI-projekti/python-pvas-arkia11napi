@@ -111,13 +111,22 @@ async def client(jwt_env: JWTHandler, dockerdb: str) -> AsyncGenerator[TestClien
 
 
 @pytest_asyncio.fixture(scope="session")
-async def unauth_client(client: TestClient) -> AsyncGenerator[TestClient, None]:
+async def unauth_client_sess(client: TestClient) -> AsyncGenerator[TestClient, None]:
     """Instantiated test client with no privileges, we use the (admin )client fixture to init the db"""
     _ = client
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
     async with TestClient(APP) as instance:
         LOGGER.debug("Yielding instance")
         yield instance
         LOGGER.debug("back")
+
+
+@pytest_asyncio.fixture(scope="function")
+async def unauth_client(unauth_client_sess: TestClient) -> AsyncGenerator[TestClient, None]:
+    """Instantiated test client with no privileges, clear cookies between yields"""
+    unauth_client_sess.cookie_jar.clear()
+    yield unauth_client_sess
+    unauth_client_sess.cookie_jar.clear()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -127,6 +136,8 @@ async def enduser_object(client: TestClient) -> AsyncGenerator[User, None]:
     await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
     async with TestClient(APP) as _instance:
         user = await get_or_create_user("test-enduser@example.com")
+        await user.update(sms="123457890").apply()
+        user = await get_or_create_user("test-enduser@example.com")
         yield user
 
 
@@ -134,6 +145,7 @@ async def enduser_object(client: TestClient) -> AsyncGenerator[User, None]:
 async def enduser_client(jwt_env: JWTHandler, client: TestClient) -> AsyncGenerator[TestClient, None]:
     """Instantiated test client with standard end-user privileges"""
     _ = client
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
     async with TestClient(APP) as instance:
         # We need to be inside the app context to have db connection initialized
         user = await get_or_create_user("test-enduser@example.com")
