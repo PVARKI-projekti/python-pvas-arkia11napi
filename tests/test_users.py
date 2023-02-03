@@ -28,6 +28,24 @@ async def test_list_users_enduser(enduser_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_my_user(enduser_client: TestClient) -> None:
+    """Test we can get our own user"""
+    resp = await enduser_client.get("/api/v1/users/me")
+    assert resp.status_code == 200
+    payload = resp.json()
+    payload["pk"] = b64_to_uuid(payload["pk"])
+    user = DBUser.parse_obj(payload)
+    assert user.pk
+
+
+@pytest.mark.asyncio
+async def test_get_my_user_unauth(unauth_client: TestClient) -> None:
+    """Test we can get our own user"""
+    resp = await unauth_client.get("/api/v1/users/me")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_list_users(client: TestClient, three_users: List[User]) -> None:
     """Test we can get users listed"""
     user1, user2, user3 = three_users
