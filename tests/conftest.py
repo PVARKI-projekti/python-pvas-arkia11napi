@@ -112,12 +112,22 @@ async def client(jwt_env: JWTHandler, dockerdb: str) -> AsyncGenerator[TestClien
 
 @pytest_asyncio.fixture(scope="session")
 async def unauth_client(client: TestClient) -> AsyncGenerator[TestClient, None]:
-    """Instantiated test client with no privileges"""
+    """Instantiated test client with no privileges, we use the (admin )client fixture to init the db"""
     _ = client
     async with TestClient(APP) as instance:
         LOGGER.debug("Yielding instance")
         yield instance
         LOGGER.debug("back")
+
+
+@pytest_asyncio.fixture(scope="session")
+async def enduser_object(client: TestClient) -> AsyncGenerator[User, None]:
+    """Make sure end-user exist and yield it, we use the (admin )client fixture to init the db"""
+    _ = client
+    await WRAPPER.bind_gino(asyncio.get_event_loop())  # whyyy ?
+    async with TestClient(APP) as _instance:
+        user = await get_or_create_user("test-enduser@example.com")
+        yield user
 
 
 @pytest_asyncio.fixture(scope="session")

@@ -1,5 +1,5 @@
 """Token relaed endpoints"""
-from typing import List, cast
+from typing import List, Optional, cast
 import logging
 
 import pendulum
@@ -17,7 +17,7 @@ from arkia11nmodels.models import Token, User, Role
 from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
-from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE, TEMPLATES_PATH
+from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE, TEMPLATES_PATH, TOKEN_EMAIL_SUBJECT
 from ..mailer import singleton as getmailer
 
 LOGGER = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ async def public_key() -> FileResponse:
     "/api/v1/tokens", tags=["tokens"], response_model=TokenRequestResponse, status_code=status.HTTP_201_CREATED
 )
 async def request_token(
-    tkreq: TokenRequest, request: Request, jwt: JWTPayload = Depends(JWTBearer(auto_error=False))
+    tkreq: TokenRequest, request: Request, jwt: Optional[JWTPayload] = Depends(JWTBearer(auto_error=False))
 ) -> TokenRequestResponse:
     """Request a token"""
     if tkreq.deliver_via != "email":
@@ -43,7 +43,7 @@ async def request_token(
     user = await User.query.where(getattr(User, tkreq.deliver_via) == tkreq.target).gino.first()
     if not user or user.deleted:
         LOGGER.info("Could not find matching user for {}".format(tkreq))
-        if not check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read", auto_error=False):
+        if not jwt or not check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read", auto_error=False):
             return TokenRequestResponse(sent=False, errordetail="User not found")
         return TokenRequestResponse(sent=True)
 
@@ -64,7 +64,7 @@ async def request_token(
 
     mailer = getmailer()
     msg = MessageSchema(
-        subject="PVARKI login token",  # FIXME: make configurable in the request or env based default
+        subject=TOKEN_EMAIL_SUBJECT,
         recipients=[send_to],
         subtype=MessageType.plain,
         body=template.render(login_url=token_url),
@@ -176,7 +176,7 @@ async def list_tokens(jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> 
 
 # FIXME: Add patch method and pydanctic schema for uppdating
 @TOKEN_ROUTER.get("/api/v1/tokens/{pkstr}", tags=["tokens"], response_model=DBToken)
-async def get_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_error=False))) -> DBToken:
+async def get_token(pkstr: str, jwt: JWTPayload = Depends(JWTBearer(auto_error=True))) -> DBToken:
     """Get a single token, audit_meta is only visible to those with audit privilege"""
     token = await get_or_404(Token, pkstr)
     user = await User.Get(token.user)
