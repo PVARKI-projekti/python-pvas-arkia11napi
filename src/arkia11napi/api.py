@@ -13,7 +13,7 @@ from libadvian.logging import init_logging
 from .views.tokens import TOKEN_ROUTER
 from .views.roles import ROLE_ROUTER
 from .views.users import USER_ROUTER
-from .config import TEMPLATES_PATH, STATIC_PATH
+from .config import TEMPLATES_PATH, STATIC_PATH, LOG_LEVEL
 from .middleware import DBWrapper
 
 TEMPLATES = Jinja2Templates(directory=str(TEMPLATES_PATH))
@@ -27,7 +27,7 @@ APP.include_router(TOKEN_ROUTER)
 WRAPPER = DBWrapper(gino=models.db)
 WRAPPER.init_app(APP)
 
-init_logging(logging.DEBUG)
+init_logging(LOG_LEVEL)
 
 
 @APP.get("/gdpr", tags=["privacy"], response_class=HTMLResponse)
