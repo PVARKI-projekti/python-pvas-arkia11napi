@@ -9,6 +9,8 @@
 
   [entryPoints.websecure]
     address = ":443"
+    [entryPoints.websecure.forwardedHeaders]
+      insecure="true"
 
 [accessLog]
 
