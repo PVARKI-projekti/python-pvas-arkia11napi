@@ -18,8 +18,8 @@ x-mailconfig_env: &mailconfig_env
   USE_CREDENTIALS: "1" # Set to 1 if you need user/pass for the server
   MAIL_PORT: {{.Env.MAIL_PORT}}
   MAIL_SERVER: {{.Env.MAIL_SERVER}}
-  MAIL_STARTTLS: "{{.Env.MAIL_STARTTLS}}" # Try to upgrade to TLS
-  MAIL_SSL_TLS: "{{.Env.MAIL_SSL_TLS}}" # Force TLS
+  MAIL_STARTTLS: "{{getenv "MAIL_STARTTLS" "1"}}" # Try to upgrade to TLS
+  MAIL_SSL_TLS: "{{getenv "MAIL_SSL_TLS" "0"}}" # Force TLS
 
 # JWT keys, for testing we default to the test keys, should be specified as secrets though
 x-jwtconfig_env: &jwtconfig_env
