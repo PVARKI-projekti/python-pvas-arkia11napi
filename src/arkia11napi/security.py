@@ -60,13 +60,14 @@ class JWTHandler:
 
     def __post_init__(self) -> None:
         """Read the keys"""
-        with self.privkeypath.open("rb") as fpntr:
-            passphrase: Optional[bytes] = None
-            if self.keypasswd:
-                passphrase = ensure_utf8(str(self.keypasswd))
-            self._privkey = serialization.load_pem_private_key(
-                fpntr.read(), password=passphrase, backend=default_backend()
-            )
+        if self.privkeypath and self.privkeypath.exists():
+            with self.privkeypath.open("rb") as fpntr:
+                passphrase: Optional[bytes] = None
+                if self.keypasswd:
+                    passphrase = ensure_utf8(str(self.keypasswd))
+                self._privkey = serialization.load_pem_private_key(
+                    fpntr.read(), password=passphrase, backend=default_backend()
+                )
         with self.pubkeypath.open("rb") as fpntr:
             self.pubkey = serialization.load_pem_public_key(fpntr.read(), backend=default_backend())
 
