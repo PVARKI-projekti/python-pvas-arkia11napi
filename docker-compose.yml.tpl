@@ -23,8 +23,8 @@ x-mailconfig_env: &mailconfig_env
 
 # JWT keys, for testing we default to the test keys, should be specified as secrets though
 x-jwtconfig_env: &jwtconfig_env
-  JWT_PRIVKEY_PATH: "{{.Env.JWT_PRIVKEY_PATH}}"
-  JWT_PUBKEY_PATH: "{{.Env.JWT_PUBKEY_PATH}}"
+  JWT_PRIVKEY_PATH: "/app/jwtRS256.key"
+  JWT_PUBKEY_PATH: "/app/jwtRS256.pub"
   JWT_PRIVKEY_PASS: "{{.Env.JWT_PRIVKEY_PASS}}" # pragma: allowlist secret
   JWT_COOKIE_SECURE: "1"
   JWT_COOKIE_DOMAIN: "pvarki.fi"
@@ -74,6 +74,9 @@ services:
       <<: *dbconfig_env
       <<: *mailconfig_env
       <<: *jwtconfig_env
+    volumes:
+      - {{.Env.JWT_PRIVKEY_PATH}}:/app/jwtRS256.key
+      - {{.Env.JWT_PUBKEY_PATH}}:/app/jwtRS256.pub
     depends_on:
       db:
         condition: service_healthy
