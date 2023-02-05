@@ -55,7 +55,7 @@ services:
       - 'db_data:/var/lib/postgresql/data'
 
   dbinit:
-    image: pvarkiprojekti/arkia11nmodels:latest
+    image: pvarki/arkia11nmodels:latest
     environment:
       <<: *dbconfig_env
     networks:
@@ -65,7 +65,7 @@ services:
         condition: service_healthy
 
   api:
-    image: pvarkiprojekti/arkia11napi:latest
+    image: pvarki/arkia11napi:latest
     build:
       context: .
       dockerfile: Dockerfile
