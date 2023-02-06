@@ -75,7 +75,7 @@ jinja2 = "^3.1"
 pyjwt = {version = "^2.6", extras = ["crypto"]}
 fastapi-mail = "^1.2"
 # FIXME: get from our own nexus or similar
-arkia11nmodels = { git="https://github.com/PVARKI-projekti/python-pvas-arkia11nmodels.git", tag="1.0.0"}
+arkia11nmodels = { git="https://github.com/pvarki/python-pvas-arkia11nmodels.git", tag="1.0.0"}
 
 
 [tool.poetry.group.dev.dependencies]
