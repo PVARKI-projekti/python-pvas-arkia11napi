@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "arkia11napi"
-version = "0.1.0"
+version = "1.0.0"
 description = "FastAPI for PVARKI user management, authentication and authorization"
 authors = ["Eero af Heurlin <eero.afheurlin@iki.fi>"]
 homepage = "https://github.com/PVARKI-projekti/python-shop-arkia11napi"
@@ -36,6 +36,10 @@ exclude = '''
 [tool.mypy]
 strict=true
 
+[[tool.mypy.overrides]]
+module="arkia11napi.schemas.*"  # pydantic_collections has issues
+disallow_subclassing_any=false
+
 [tool.pytest.ini_options]
 junit_family="xunit2"
 addopts="--cov=arkia11napi --cov-fail-under=65 --cov-branch"
@@ -59,9 +63,20 @@ omit = ["tests/*"]
 branch = true
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8.1,<4.0"  # fastapi-mail depends on 3.8.1 as min
 libadvian = "^1.0"
 click = "^8.0"
+#fastapi = ">=0.89,<1.0"  # caret behaviour on 0.x is to lock to 0.x.*
+fastapi = "^0.88" # 0.89 has a nasty bug
+python-dotenv = ">=0.21,<1.0" # explicitly specify this so pydantic.settings can use it
+uvicorn = {version = "^0.20", extras = ["standard"]}
+gunicorn = "^20.1"
+jinja2 = "^3.1"
+pyjwt = {version = "^2.6", extras = ["crypto"]}
+fastapi-mail = "^1.2"
+# FIXME: get from our own nexus or similar
+arkia11nmodels = { git="https://github.com/pvarki/python-pvas-arkia11nmodels.git", tag="1.0.0"}
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.1"
@@ -73,8 +88,13 @@ bandit = "^1.7"
 mypy = "^0.942"
 pre-commit = "^2.17"
 pytest-asyncio = "^0.18"
+pytest-docker = "^1.0"
+docker-compose = "^1.29"
 bump2version = "^1.0"
 detect-secrets = "^1.2"
+httpx = "^0.23"
+async-asgi-testclient = "^1.4"
+psycopg2 = { version="^2.9", optional=false }
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]

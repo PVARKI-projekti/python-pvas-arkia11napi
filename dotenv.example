@@ -1,0 +1,29 @@
+# JWT keys
+JWT_PRIVKEY_PATH="tests/data/jwtRS256.key"
+JWT_PUBKEY_PATH="tests/data/jwtRS256.pub"
+JWT_PRIVKEY_PASS="Disparate-Letdown-Pectin-Natural"3
+#JWT_COOKIE_SECURE=0  # comment out for non-ts testing
+#JWT_COOKIE_DOMAIN="" # commend out for testing outside of pvarki.fi (maybe define domain)
+
+# Mailer config (don't ask about some of the key names)
+MAIL_FROM="testsender@example.com"
+#SUPPRESS_SEND=1 # If you need to suppress for a moment
+MAIL_USERNAME="" # MUST be set even if not used
+MAIL_PASSWORD="" # MUST be set even if not used
+USE_CREDENTIALS="0" # Set to 1 if you need user/pass for the server
+MAIL_PORT=1025 # MUST be explicitly set anyway, 1025 is MailHog default
+MAIL_SERVER="localhost"
+MAIL_STARTTLS="0" # Try to upgrade to TLS
+MAIL_SSL_TLS="0" # Force TLS
+
+# Templating and stylesheets, if you want to override for some reason
+# STATIC_PATH="/path/to/directory"
+# TEMPLATES_PATH="/path/to/directory"
+
+# Database config, see arkin11models.dbconfig for details
+#DB_HOST=localhost
+#DB_PASSWORD=arkipwd
+#DB_USER=postgres
+#DB_DATABASE=arki
+#DB_PORT=56432
+#DB_SSL=disable
