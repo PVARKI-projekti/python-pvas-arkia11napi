@@ -14,7 +14,13 @@ from jinja2 import Environment, FileSystemLoader
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token, User, Role
 
-from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse, TokenConsumeResponse
+from ..schemas.tokens import (
+    TokenRequestResponse,
+    TokenPager,
+    TokenRefreshResponse,
+    TokenConsumeResponse,
+    TokenConsumeRequest,
+)
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
 from ..config import (
@@ -167,10 +173,10 @@ async def use_token(token: str, request: Request) -> RedirectResponse:
     return resp
 
 
-@TOKEN_ROUTER.post("/api/v1/tokens/consume", tags=["tokens"])
-async def consume_token(token: str, request: Request) -> TokenConsumeResponse:
+@TOKEN_ROUTER.post("/api/v1/tokens/consume", tags=["tokens"], response_model=TokenConsumeResponse)
+async def consume_token(creq: TokenConsumeRequest, request: Request) -> TokenConsumeResponse:
     """Consume token via API"""
-    token_db, jwt = await token_consume_common(token, request)
+    token_db, jwt = await token_consume_common(creq.token, request)
     refresh_url = request.url_for("refresh_token")
 
     return TokenConsumeResponse(

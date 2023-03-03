@@ -46,6 +46,12 @@ class TokenRefreshResponse(BaseModel, extra="forbid"):
     jwt: str = Field(description="The newly issued JWT")
 
 
+class TokenConsumeRequest(BaseModel, extra="forbid"):
+    """Request to consume a token"""
+
+    token: str = Field(description="The token UUID to consume")
+
+
 class TokenConsumeResponse(BaseModel, extra="forbid"):
     """Response to token consume"""
 
