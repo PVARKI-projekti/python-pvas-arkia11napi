@@ -30,6 +30,7 @@ x-jwtconfig_env: &jwtconfig_env
   JWT_PRIVKEY_PASS: "Disparate-Letdown-Pectin-Natural" # pragma: allowlist secret
   JWT_COOKIE_SECURE: "0"
   JWT_COOKIE_DOMAIN: ""
+  TOKEN_URL_OVERRIDE: ""
 
 
 services:

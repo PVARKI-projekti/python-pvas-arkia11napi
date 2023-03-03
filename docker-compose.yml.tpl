@@ -28,6 +28,7 @@ x-jwtconfig_env: &jwtconfig_env
   JWT_PRIVKEY_PASS: "{{.Env.JWT_PRIVKEY_PASS}}" # pragma: allowlist secret
   JWT_COOKIE_SECURE: "1"
   JWT_COOKIE_DOMAIN: "pvarki.fi"
+  TOKEN_URL_OVERRIDE: "{{getenv "TOKEN_URL_OVERRIDE" ""}}"
 
 
 services:
