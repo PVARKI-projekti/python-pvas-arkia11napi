@@ -1,5 +1,5 @@
 """Token relaed endpoints"""
-from typing import List, Optional, cast
+from typing import List, Optional, Tuple, cast
 import logging
 
 import pendulum
@@ -14,7 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 from arkia11nmodels.schemas.token import TokenRequest, DBToken
 from arkia11nmodels.models import Token, User, Role
 
-from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse
+from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse, TokenConsumeResponse
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
 from ..config import (
@@ -88,7 +88,7 @@ async def request_token(
     return TokenRequestResponse(sent=True)
 
 
-@TOKEN_ROUTER.get("/api/v1/tokens/refresh", tags=["tokens"], response_model=TokenRefreshResponse)
+@TOKEN_ROUTER.get("/api/v1/tokens/refresh", tags=["tokens"], response_model=TokenRefreshResponse, name="refresh_token")
 async def refresh_token(
     response: Response, jwt: JWTPayload = Depends(JWTBearer(auto_error=True))
 ) -> TokenRefreshResponse:
@@ -110,9 +110,8 @@ async def refresh_token(
     return TokenRefreshResponse(jwt=new_jwt)
 
 
-@TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token_get")
-async def use_token(token: str, request: Request) -> RedirectResponse:
-    """Use a token"""
+async def token_consume_common(token: str, _request: Request) -> Tuple[Token, str]:
+    """Common token consume actions"""
     token_db = await get_or_404(Token, token)
     token_db = cast(Token, token_db)
     if token_db.used:
@@ -142,6 +141,14 @@ async def use_token(token: str, request: Request) -> RedirectResponse:
     # FIXME: figure what to do with audit_meta
     await token_db.update(audit_meta=new_meta, used=pendulum.now("UTC")).apply()
 
+    return token_db, jwt
+
+
+@TOKEN_ROUTER.get("/api/v1/tokens/use", tags=["tokens"], response_class=RedirectResponse, name="use_token_get")
+async def use_token(token: str, request: Request) -> RedirectResponse:
+    """Use a token"""
+    token_db, jwt = await token_consume_common(token, request)
+
     if token_db.redirect is None:
         destination = request.url_for("my_user")
     else:
@@ -158,6 +165,20 @@ async def use_token(token: str, request: Request) -> RedirectResponse:
         secure=JWT_COOKIE_SECURE,
     )
     return resp
+
+
+@TOKEN_ROUTER.post("/api/v1/tokens/consume", tags=["tokens"])
+async def consume_token(token: str, request: Request) -> TokenConsumeResponse:
+    """Consume token via API"""
+    token_db, jwt = await token_consume_common(token, request)
+    refresh_url = request.url_for("refresh_token")
+
+    return TokenConsumeResponse(
+        jwt=jwt,
+        expires=token_db.expires,
+        refresh_url=refresh_url,
+        redirect=token_db.redirect,
+    )
 
 
 @TOKEN_ROUTER.get("/api/v1/tokens", tags=["tokens"], response_model=TokenPager)

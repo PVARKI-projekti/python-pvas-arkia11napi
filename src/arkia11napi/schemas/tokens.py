@@ -1,6 +1,7 @@
 """Token endpoint schemas"""
 from typing import Optional, Sequence
 import uuid
+import datetime
 
 from arkia11nmodels.schemas.token import DBToken
 from pydantic_collections import BaseCollectionModel
@@ -43,3 +44,12 @@ class TokenRefreshResponse(BaseModel, extra="forbid"):
     """Response to token refresh request"""
 
     jwt: str = Field(description="The newly issued JWT")
+
+
+class TokenConsumeResponse(BaseModel, extra="forbid"):
+    """Response to token consume"""
+
+    jwt: str = Field(description="The newly issued JWT")
+    expires: datetime.datetime = Field(description="Token expiry")
+    refresh_url: str = Field(description="URL for refreshing the token")
+    redirect: Optional[str] = Field(default=None, nullable=True, description="The requested redirect url, if any")
