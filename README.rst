@@ -28,7 +28,12 @@ Docker
 For more controlled deployments and to get rid of "works on my computer" -syndrome, we always
 make sure our software works under docker.
 
-It's also a quick way to get started with a standard development environment.
+It's also a quick way to get started with a standard development environment::
+
+    docker-compose -p a11napi -f docker-compose_local.yml -f docker-compose_local_reload.yml up
+
+Then go to http://localhost:8100/api/docs and http://localhost:8125/
+
 
 SSH agent forwarding
 ^^^^^^^^^^^^^^^^^^^^
