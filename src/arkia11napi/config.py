@@ -1,4 +1,5 @@
 """General configuration variables"""
+from typing import Optional
 from pathlib import Path
 
 from starlette.config import Config
@@ -12,4 +13,5 @@ JWT_COOKIE_DOMAIN: str = cfg("JWT_COOKIE_DOMAIN", default="pvarki.fi")
 JWT_COOKIE_SECURE: bool = cfg("JWT_COOKIE_SECURE", default=True, cast=bool)
 SUPERADMIN_ROLE_NAME: str = cfg("SUPERADMIN_ROLE_NAME", default="SuperAdmins")
 TOKEN_EMAIL_SUBJECT: str = cfg("TOKEN_EMAIL_SUBJECT", default="PVARKI login token")
+TOKEN_URL_OVERRIDE: Optional[str] = cfg("TOKEN_URL_OVERRIDE", default=None)
 LOG_LEVEL: int = cfg("LOG_LEVEL", default=20, cast=int)

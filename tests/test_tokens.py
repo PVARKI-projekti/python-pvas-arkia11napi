@@ -1,4 +1,5 @@
 """Test token endpoints"""
+from typing import Any
 import logging
 import re
 
@@ -10,7 +11,8 @@ from arkia11nmodels.models import User
 
 import arkia11napi.mailer
 from arkia11napi.config import TOKEN_EMAIL_SUBJECT, JWT_COOKIE_NAME
-
+import arkia11napi.config
+import arkia11napi.views.tokens
 
 # pylint: disable=W0621
 LOGGER = logging.getLogger(__name__)
@@ -36,6 +38,34 @@ async def test_request_token_email(unauth_client: TestClient, enduser_object: Us
         # Fscking MIME...
         payload = outbox[0].get_payload(0).get_payload(decode=True)
         assert "/api/v1/tokens/use" in ensure_str(payload)
+
+
+@pytest.mark.asyncio
+async def test_request_token_email_urloverride(
+    unauth_client: TestClient, enduser_object: User, monkeypatch: Any
+) -> None:
+    """Test tokens get emailed with overridden url"""
+    url_override = "https://foo.bar.baz/"
+    monkeypatch.setenv("TOKEN_URL_OVERRIDE", url_override)
+    monkeypatch.setattr(arkia11napi.config, "TOKEN_URL_OVERRIDE", url_override)
+    monkeypatch.setattr(arkia11napi.views.tokens, "TOKEN_URL_OVERRIDE", url_override)
+    mailer = arkia11napi.mailer.singleton()
+    with mailer.record_messages() as outbox:
+        resp = await unauth_client.post(
+            "/api/v1/tokens",
+            json={
+                "deliver_via": "email",
+                "target": enduser_object.email,
+            },
+        )
+        LOGGER.debug("resp={}, content={}".format(resp, resp.content))
+        assert resp.status_code == 201
+        assert len(outbox) == 1
+        msg = outbox[0]
+        assert msg["subject"] == TOKEN_EMAIL_SUBJECT
+        # Fscking MIME...
+        payload = outbox[0].get_payload(0).get_payload(decode=True)
+        assert url_override in ensure_str(payload)
 
 
 @pytest.mark.asyncio

@@ -17,7 +17,14 @@ from arkia11nmodels.models import Token, User, Role
 from ..schemas.tokens import TokenRequestResponse, TokenPager, TokenRefreshResponse
 from ..helpers import get_or_404
 from ..security import JWTHandler, JWTBearer, JWTPayload, check_acl
-from ..config import JWT_COOKIE_NAME, JWT_COOKIE_DOMAIN, JWT_COOKIE_SECURE, TEMPLATES_PATH, TOKEN_EMAIL_SUBJECT
+from ..config import (
+    JWT_COOKIE_NAME,
+    JWT_COOKIE_DOMAIN,
+    JWT_COOKIE_SECURE,
+    TEMPLATES_PATH,
+    TOKEN_EMAIL_SUBJECT,
+    TOKEN_URL_OVERRIDE,
+)
 from ..mailer import singleton as getmailer
 
 LOGGER = logging.getLogger(__name__)
@@ -59,6 +66,8 @@ async def request_token(
     token = await Token.get(token.pk)
     # See https://github.com/encode/starlette/issues/560 on why we do it like this
     token_url = request.url_for("use_token_get") + f"?token={uuid_to_b64(token.pk)}"  # type: ignore # false positive
+    if TOKEN_URL_OVERRIDE:
+        token_url = f"{TOKEN_URL_OVERRIDE}?token={uuid_to_b64(token.pk)}"  # type: ignore # false positive
 
     template = Environment(loader=FileSystemLoader(TEMPLATES_PATH), autoescape=True).get_template("token_email.txt")
 
