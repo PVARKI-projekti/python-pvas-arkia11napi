@@ -1,5 +1,4 @@
 """Test token endpoints"""
-from typing import Any
 import logging
 import re
 
@@ -42,13 +41,9 @@ async def test_request_token_email(unauth_client: TestClient, enduser_object: Us
 
 @pytest.mark.asyncio
 async def test_request_token_email_urloverride(
-    unauth_client: TestClient, enduser_object: User, monkeypatch: Any
+    unauth_client: TestClient, enduser_object: User, overridden_token_url: str
 ) -> None:
     """Test tokens get emailed with overridden url"""
-    url_override = "https://foo.bar.baz/"
-    monkeypatch.setenv("TOKEN_URL_OVERRIDE", url_override)
-    monkeypatch.setattr(arkia11napi.config, "TOKEN_URL_OVERRIDE", url_override)
-    monkeypatch.setattr(arkia11napi.views.tokens, "TOKEN_URL_OVERRIDE", url_override)
     mailer = arkia11napi.mailer.singleton()
     with mailer.record_messages() as outbox:
         resp = await unauth_client.post(
@@ -65,7 +60,7 @@ async def test_request_token_email_urloverride(
         assert msg["subject"] == TOKEN_EMAIL_SUBJECT
         # Fscking MIME...
         payload = outbox[0].get_payload(0).get_payload(decode=True)
-        assert url_override in ensure_str(payload)
+        assert overridden_token_url in ensure_str(payload)
 
 
 @pytest.mark.asyncio

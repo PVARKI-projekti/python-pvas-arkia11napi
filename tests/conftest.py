@@ -287,3 +287,14 @@ async def three_users(dockerdb: str) -> AsyncGenerator[List[User], None]:
     for user in ret:
         await UserRole.delete.where(UserRole.user == user.pk).gino.status()  # Nuke leftovers
         await user.delete()
+
+
+@pytest.fixture
+def overridden_token_url(monkeypatch: Any) -> Generator[str, None, None]:
+    """set the override env and yield the url"""
+    url_override = f"https://test{random.randint(1,100)}.override.example.com/"  # nosec
+    monkeypatch.setenv("TOKEN_URL_OVERRIDE", url_override)
+    monkeypatch.setattr(arkia11napi.config, "TOKEN_URL_OVERRIDE", url_override)
+    monkeypatch.setattr(arkia11napi.views.tokens, "TOKEN_URL_OVERRIDE", url_override)
+
+    yield url_override
