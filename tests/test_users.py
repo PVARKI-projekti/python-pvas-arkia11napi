@@ -8,6 +8,7 @@ from async_asgi_testclient import TestClient
 
 from arkia11nmodels.models import User, Role
 from arkia11nmodels.schemas.user import DBUser, UserCreate
+from arkia11nmodels.schemas.role import ACL
 
 # pylint: disable=W0621
 LOGGER = logging.getLogger(__name__)
@@ -36,6 +37,16 @@ async def test_get_my_user(enduser_client: TestClient) -> None:
     payload["pk"] = b64_to_uuid(payload["pk"])
     user = DBUser.parse_obj(payload)
     assert user.pk
+
+
+@pytest.mark.asyncio
+async def test_get_my_acl(enduser_client: TestClient) -> None:
+    """Test we can get our own user ACL"""
+    resp = await enduser_client.get("/api/v1/users/me/acl")
+    assert resp.status_code == 200
+    payload = resp.json()
+    acl = ACL.parse_obj(payload)
+    assert acl
 
 
 @pytest.mark.asyncio

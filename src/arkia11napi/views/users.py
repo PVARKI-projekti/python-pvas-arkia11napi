@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from starlette import status
 from arkia11nmodels.models import User, Role
 from arkia11nmodels.schemas.user import DBUser, UserCreate
-from arkia11nmodels.schemas.role import DBRole, RoleList
+from arkia11nmodels.schemas.role import DBRole, RoleList, ACL
 
 from ..schemas.users import UserPager
 from ..helpers import get_or_404
@@ -50,6 +50,14 @@ async def get_my_user(request: Request) -> DBUser:
     user = await get_or_404(User, request.state.jwt["userid"])
     check_acl(request.state.jwt, "fi.pvarki.arkia11nmodels.user:read", self_user=user)
     return DBUser.parse_obj(user.to_dict())
+
+
+@USER_ROUTER.get("/api/v1/users/me/acl", tags=["users"], response_model=ACL, name="my_acl")
+async def get_my_acl(request: Request) -> ACL:
+    """Get current JWT session users ACL (in case we stop resolving them to the JWT itself)"""
+    user = await get_or_404(User, request.state.jwt["userid"])
+    check_acl(request.state.jwt, "fi.pvarki.arkia11nmodels.user:read", self_user=user)
+    return await Role.resolve_user_acl(user)
 
 
 # FIXME: Add patch method and pydanctic schema for uppdating

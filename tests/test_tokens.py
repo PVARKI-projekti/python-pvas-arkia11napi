@@ -13,6 +13,7 @@ from arkia11napi.config import TOKEN_EMAIL_SUBJECT, JWT_COOKIE_NAME
 import arkia11napi.config
 import arkia11napi.views.tokens
 from arkia11napi.schemas.tokens import TokenConsumeResponse
+from arkia11napi.security import JWTHandler
 
 # pylint: disable=W0621
 LOGGER = logging.getLogger(__name__)
@@ -235,6 +236,13 @@ async def test_consume_token_defaultredirect(
         assert parsed.expires
         assert parsed.refresh_url
         assert parsed.redirect is None
+
+        jwt_parsed = JWTHandler.singleton().decode(parsed.jwt)
+        assert "email" in jwt_parsed
+        assert "profile_url" in jwt_parsed
+        assert "/api/v1/users/me" in jwt_parsed["profile_url"]
+        assert "acl_url" in jwt_parsed
+        assert "/api/v1/users/me/acl" in jwt_parsed["acl_url"]
 
 
 @pytest.mark.asyncio

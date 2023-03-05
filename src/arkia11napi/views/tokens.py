@@ -116,7 +116,7 @@ async def refresh_token(
     return TokenRefreshResponse(jwt=new_jwt)
 
 
-async def token_consume_common(token: str, _request: Request) -> Tuple[Token, str]:
+async def token_consume_common(token: str, request: Request) -> Tuple[Token, str]:
     """Common token consume actions"""
     token_db = await get_or_404(Token, token)
     token_db = cast(Token, token_db)
@@ -140,6 +140,9 @@ async def token_consume_common(token: str, _request: Request) -> Tuple[Token, st
     jwt = JWTHandler.singleton().issue(
         {
             "userid": uuid_to_b64(user.pk),
+            "email": user.email,
+            "profile_url": request.url_for("my_user"),
+            "acl_url": request.url_for("my_acl"),
             "acl": (await Role.resolve_user_acl(user)).dict(),
         }
     )
