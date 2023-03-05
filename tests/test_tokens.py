@@ -41,6 +41,44 @@ async def test_request_token_email(unauth_client: TestClient, enduser_object: Us
 
 
 @pytest.mark.asyncio
+async def test_request_token_wrongemail(unauth_client: TestClient, enduser_object: User) -> None:
+    """Test that we cannot enumerate users when unauthenticated"""
+    _ = enduser_object
+    mailer = arkia11napi.mailer.singleton()
+    with mailer.record_messages() as outbox:
+        resp = await unauth_client.post(
+            "/api/v1/tokens",
+            json={
+                "deliver_via": "email",
+                "target": "nosuchuser@example.com",
+            },
+        )
+        LOGGER.debug("resp={}, content={}".format(resp, resp.content))
+        payload = resp.json()
+        assert payload["sent"] is True
+        assert not outbox
+
+
+@pytest.mark.asyncio
+async def test_request_token_wrongemail_admin(client: TestClient, enduser_object: User) -> None:
+    """Test that we cannot enumerate users when unauthenticated, unless we are admin"""
+    _ = enduser_object
+    mailer = arkia11napi.mailer.singleton()
+    with mailer.record_messages() as outbox:
+        resp = await client.post(
+            "/api/v1/tokens",
+            json={
+                "deliver_via": "email",
+                "target": "nosuchuser@example.com",
+            },
+        )
+        LOGGER.debug("resp={}, content={}".format(resp, resp.content))
+        payload = resp.json()
+        assert payload["sent"] is False
+        assert not outbox
+
+
+@pytest.mark.asyncio
 async def test_request_token_email_urloverride(
     unauth_client: TestClient, enduser_object: User, overridden_token_url: str
 ) -> None:
