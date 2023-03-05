@@ -140,6 +140,7 @@ async def token_consume_common(token: str, _request: Request) -> Tuple[Token, st
     jwt = JWTHandler.singleton().issue(
         {
             "userid": uuid_to_b64(user.pk),
+            "email": user.email,
             "acl": (await Role.resolve_user_acl(user)).dict(),
         }
     )
