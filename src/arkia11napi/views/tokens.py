@@ -142,6 +142,7 @@ async def token_consume_common(token: str, request: Request) -> Tuple[Token, str
             "userid": uuid_to_b64(user.pk),
             "email": user.email,
             "profile_url": request.url_for("my_user"),
+            "acl_url": request.url_for("my_acl"),
             "acl": (await Role.resolve_user_acl(user)).dict(),
         }
     )
