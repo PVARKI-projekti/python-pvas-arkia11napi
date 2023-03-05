@@ -239,6 +239,8 @@ async def test_consume_token_defaultredirect(
 
         jwt_parsed = JWTHandler.singleton().decode(parsed.jwt)
         assert "email" in jwt_parsed
+        assert "profile_url" in jwt_parsed
+        assert "/api/v1/users/me" in jwt_parsed["profile_url"]
 
 
 @pytest.mark.asyncio
