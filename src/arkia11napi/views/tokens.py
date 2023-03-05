@@ -56,7 +56,7 @@ async def request_token(
     user = await User.query.where(getattr(User, tkreq.deliver_via) == tkreq.target).gino.first()
     if not user or user.deleted:
         LOGGER.info("Could not find matching user for {}".format(tkreq))
-        if not jwt or not check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read", auto_error=False):
+        if jwt and check_acl(jwt, "fi.pvarki.arkia11nmodels.token:read", auto_error=False):
             return TokenRequestResponse(sent=False, errordetail="User not found")
         return TokenRequestResponse(sent=True)
 
