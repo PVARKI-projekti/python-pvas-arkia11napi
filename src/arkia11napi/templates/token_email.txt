@@ -1,5 +1,11 @@
-Hiya
+Tervetuloa käyttämään PVArki-tilauspalvelua!
 
-Use the following link {{ login_url }}
+Sähköpostillasi on pyydetty kirjautumaan PVArki-palveluun. Mikäli tämä on tarkoitus, voit kirjautua tilauspalveluun tästä linkistä:
 
-FIXME: Make better template
+{{ login_url }}
+
+Mikäli et ole halunnut kirjautua, voit poistaa tämän viestin. Tietosi ovat turvassa.
+
+Terveisin,
+
+PVArki-tiimi
