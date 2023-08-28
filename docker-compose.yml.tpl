@@ -72,9 +72,7 @@ services:
       dockerfile: Dockerfile
       target: production
     environment:
-      <<: *dbconfig_env
-      <<: *mailconfig_env
-      <<: *jwtconfig_env
+      <<: [ *dbconfig_env, *mailconfig_env, *jwtconfig_env ]
     volumes:
       - {{.Env.JWT_PRIVKEY_PATH}}:/app/jwtRS256.key
       - {{.Env.JWT_PUBKEY_PATH}}:/app/jwtRS256.pub

@@ -68,9 +68,7 @@ services:
       dockerfile: Dockerfile
       target: production
     environment:
-      <<: *dbconfig_env
-      <<: *mailconfig_env
-      <<: *jwtconfig_env
+      <<: [ *dbconfig_env, *mailconfig_env, *jwtconfig_env ]
     ports:
       - target: 8000
         published: 8100
